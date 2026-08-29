@@ -46,7 +46,7 @@ private:
 
     void posToCoordAndDp(vec2 pos, int nx, int ny, ivec2& coord, vec2& dp);
 
-    void simulateParticles();
+    void integrateParticles();
     void pushAppartParticles();
     void particleCollisions();
     void particlesToGrid();

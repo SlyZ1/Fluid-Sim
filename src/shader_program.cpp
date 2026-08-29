@@ -26,7 +26,7 @@ string ShaderProgram::getShaderSource(const char* path){
 
     bool isForwardDeclaration = false;
 
-    while (getline(file, line)) {
+    while (getline(file, line)) { 
         // Includes
         if (line.find("#pragma include") != std::string::npos) {
             fs::path includePath = fs::path(path).parent_path() / extractPath(line);
@@ -49,6 +49,9 @@ void ShaderProgram::load(int type, const char *path){
     m_types.push_back(type);
     m_paths.push_back(path);
 
+    filesystem::path p(path);
+    m_name = p.stem().string();
+
     //Create shader
     unsigned int shader;
     shader = glCreateShader(type);
@@ -68,10 +71,12 @@ void ShaderProgram::load(int type, const char *path){
     {
         glGetShaderInfoLog(shader, 512, NULL, infoLog);
         cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << endl;
+        cerr << "at " << m_name << ".glsl" << endl;
     }
 
     //Add to program
     glAttachShader(m_shaderProgram, shader);
+    cout << "Compiling " << m_name << ".glsl..." << endl;
 }
 
 void ShaderProgram::reload(){
@@ -99,6 +104,7 @@ void ShaderProgram::reload(){
         {
             glGetShaderInfoLog(shader, 512, NULL, infoLog);
             cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << endl;
+            cerr << "at " << m_name << ".glsl" << endl;
         }
 
         //Add to program
@@ -118,6 +124,7 @@ void ShaderProgram::link(){
     if(!success) {
         glGetProgramInfoLog(m_shaderProgram, 512, NULL, infoLog);
         cerr << "ShaderProgram linking failed : " << infoLog << endl;
+        cerr << "at " << m_name << ".glsl" << endl;
     }
     
     //Delete shaders
@@ -130,6 +137,10 @@ void ShaderProgram::link(){
 void ShaderProgram::use(){
     glUseProgram(m_shaderProgram);
     currentlyUsedProgram = m_shaderProgram;
+}
+
+void ShaderProgram::dispatch(GLuint x, GLuint y, GLuint z){
+    glDispatchCompute(x, y, z);
 }
 
 GLuint ShaderProgram::getVarLoc(const string& name){

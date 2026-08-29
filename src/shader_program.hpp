@@ -1,3 +1,6 @@
+#ifndef SHADER_PROG_HPP
+#define SHADER_PROG_HPP
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -16,6 +19,7 @@ class ShaderProgram {
         vector<GLuint> m_shaders = {};
         vector<const char*> m_paths = {};
         vector<int> m_types = {};
+        string m_name;
 
         fs::path extractPath(const string& line);
         string getShaderSource(const char *path);
@@ -28,6 +32,7 @@ class ShaderProgram {
         void reload();
         void link();
         void use();
+        void dispatch(GLuint x = 1, GLuint y = 1, GLuint z = 1);
         void destroy();
         static GLuint getVarLoc(const string& name);
 
@@ -58,3 +63,5 @@ class ShaderProgram {
             glBindVertexArray(0);
         }
 };
+
+#endif

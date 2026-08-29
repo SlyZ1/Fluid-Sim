@@ -56,7 +56,7 @@ void Solver::posToCoordAndDp(vec2 pos, int nx, int ny, ivec2& coord, vec2& dp){
     dp = g - flooredG;
 }
 
-void Solver::simulateParticles(){
+void Solver::integrateParticles(){
     #pragma omp parallel for
     for (int i = 0; i < partN; i++)
     {
@@ -171,7 +171,6 @@ void Solver::particleCollisions(){
         vec2 diff = pos - obstaclePos;
         float dist2 = glm::length2(diff);
         if (dist2 < (radius + obstacleRadius) * (radius + obstacleRadius)){
-            vec2 oldPos = partPos[i] - dt * partVel[i];
             float d = sqrt(dist2);
             vec2 dir = diff / d;
             partPos[i] += (radius + obstacleRadius - d) * dir;
@@ -459,7 +458,7 @@ void Solver::gridToParticles(){
 
 
 void Solver::updateFlip(){
-    simulateParticles();
+    integrateParticles();
     particleCollisions();
     pushAppartParticles();
     particleCollisions();
@@ -501,14 +500,10 @@ vector<vec4> Solver::getCellColors(){
     {
         for (int y = 0; y < gridY; y++)
         {
-            int cellX = coordToCell(ivec2(x,y), gridX+1, gridY);
-            float vx = velX[cellX];
+            // int cellX = coordToCell(ivec2(x,y), gridX+1, gridY);
+            // float vx = velX[cellX];
             int cellY = coordToCell(ivec2(x,y), gridX, gridY+1);
-            int cellYp1 = coordToCell(ivec2(x,y+1), gridX, gridY+1);
             float vy = velY[cellY];
-
-            float tx = (float)x / (gridX - 1);
-            float ty = (float)y / (gridY - 1);
             colors[coordToCell(ivec2(x,y), gridX, gridY)] = vec4(glm::max(0.f,vy) / 50, -glm::min(0.f,vy) / 50, 0.f, 1.f);
         }
     }
@@ -521,24 +516,8 @@ vector<vec4> Solver::getCellColors(){
     return colors;
 }
 
-void Solver::updateObstacle(vec2 pos, vec2 vel, float radius){
-    isWall.clear();
-    isWall = vector<bool>(gridX * gridY, false);
+void Solver::updateObstacle(vec2 pos, vec2 vel, float rad){
     obstaclePos = pos;
     obstacleVel = vel;
-    obstacleRadius = radius;
-    if (obstacleVel == vec2(0.f)){
-        int num = (int)glm::floor(radius / h);
-        for (int x = -num; x <= num; x++)
-        {
-            for (int y = -num; y <= num; y++)
-            {
-                vec2 cellPos = coordToPos(ivec2(x, y), x, y);
-                if (glm::distance2(obstaclePos, cellPos) >= obstacleRadius * obstacleRadius) continue;
-
-                int cell = coordToCell(ivec2(x, y), gridX, gridY);
-                //isWall[cell] = true;
-            }
-        }
-    }
+    obstacleRadius = rad;
 }
