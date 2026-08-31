@@ -1,9 +1,9 @@
 #version 430 core
-layout(local_size_x = 64) in;
+layout(local_size_x = 256) in;
 
 layout(std430, binding = 0) readonly buffer CorrectionsBuffer { vec2[] corrections; };
 layout(std430, binding = 1) readonly buffer NumCorrectionsBuffer { int[] numCorrections; };
-layout(std430, binding = 2) buffer PartPosBuffer { vec2[] partPos; };
+layout(std430, binding = 4) buffer PartPosBuffer { vec2[] partPos; };
 
 uniform int partN;
 

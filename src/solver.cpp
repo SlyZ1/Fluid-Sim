@@ -338,11 +338,10 @@ void Solver::solveIncompressibility(int iterations){
     auto solveCell = [&](ivec2 coord){
         int i = coord.x; int j = coord.y;
 
-        float s0 = (float)(j-1 >= 0/* && !isWall[coordToCell(ivec2(i, j-1), gridX, gridY)]*/);
-        float s1 = (float)(j+1 < gridY/* && !isWall[coordToCell(ivec2(i, j+1), gridX, gridY)]*/);
-        float s2 = (float)(i-1 >= 0/* && !isWall[coordToCell(ivec2(i-1, j), gridX, gridY)]*/);
-        float s3 = (float)(i+1 < gridX/* && !isWall[coordToCell(ivec2(i+1, j), gridX, gridY)]*/);
-        //s2 = 0; s3 = 0;
+        float s0 = (float)(j-1 >= 0);
+        float s1 = (float)(j+1 < gridY);
+        float s2 = (float)(i-1 >= 0);
+        float s3 = (float)(i+1 < gridX);
         float s = s0 + s1 + s2 + s3;
         if (s <= 0) return;
 

@@ -5,8 +5,7 @@ layout(std430, binding = 0) buffer CorrectionsBuffer { vec2[] corrections; };
 layout(std430, binding = 1) buffer NumCorrectionsBuffer { int[] numCorrections; };
 layout(std430, binding = 2) readonly buffer FirstCellParticleBuffer { uint[] firstCellParticle; };
 layout(std430, binding = 3) readonly buffer CellParticleIdsBuffer { uint[] cellParticleIds; };
-layout(std430, binding = 4) readonly buffer CellEndBuffer { uint[] cellEnd; };
-layout(std430, binding = 5) readonly buffer PartPosBuffer { vec2[] partPos; };
+layout(std430, binding = 4) readonly buffer PartPosBuffer { vec2[] partPos; };
 
 uniform int partN;
 uniform int gridX;
@@ -32,7 +31,7 @@ void main(){
 
             int newCell = coordToCell(ivec2(cx, cy), gridX, gridY);
             int rangeStart = int(firstCellParticle[newCell]);
-            int rangeEnd = int(cellEnd[newCell]);
+            int rangeEnd = int(firstCellParticle[newCell+1]);
 
             for (int k = rangeStart; k < rangeEnd; k++)
             {
@@ -44,7 +43,7 @@ void main(){
                 if (dist2 < minDist * minDist && dist2 > 0.)
                 {
                     float dist = sqrt(dist2);
-                    vec2 push = 0.7 * 0.5 * diff * (minDist - dist) / dist;
+                    vec2 push = 0.5 * diff * (minDist - dist) / dist;
                     corrections[i] += push;
                     numCorrections[i]++;
                 }

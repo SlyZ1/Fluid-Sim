@@ -32,7 +32,8 @@ FPSCounter fpsCounter = {};
 
 vector<vec2> poses = { vec2(0.f, 0.f), vec2(0.5f, 0.f) };
 vector<vec4> colors = { vec4(1.f), vec4(1.f) };
-float particleRadius = 2.f;
+float particleRadius = 1.f;
+int numParticle = 100000;
 int iterations = 1;
 
 vec2 previousObstaclePos = vec2(0.f);
@@ -78,7 +79,7 @@ void init(){
     glEnableVertexAttribArray(0);
 
     float solverH = 2 * 1.2f * particleRadius;
-    solver = make_shared<Solver>(15000, particleRadius, solverH, app->width() / solverH, app->height() / solverH, 0.05f);
+    solver = make_shared<Solver>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, 0.03f);
     poses = solver->getPos();
     colors = vector<vec4>((int)poses.size(), vec4(1.0f));
 
@@ -99,7 +100,7 @@ void init(){
     glVertexAttribDivisor(2, 1);
     glEnableVertexAttribArray(2);
     
-    solverGPU = make_shared<SolverGPU>(15000, particleRadius, solverH, app->width() / solverH, app->height() / solverH, 0.005f);
+    solverGPU = make_shared<SolverGPU>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, 0.03f);
 
     camera = make_shared<Camera>(0.02f, 0.25f);
     camera->resetMousePos(app->mouseX(), app->mouseY());
@@ -121,7 +122,34 @@ void recordStats(){
 }
 
 void render(){
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    // gridShader.use();
+
+    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    // glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    // glEnableVertexAttribArray(0);
+
+    // vector<vec4> grid = solver->getGrid(1.f);
+    // glBindBuffer(GL_ARRAY_BUFFER, gridVBO);
+    // glBufferData(GL_ARRAY_BUFFER, grid.size() * sizeof(vec4), grid.data(), GL_DYNAMIC_DRAW);
+
+    // glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
+    // glVertexAttribDivisor(1, 1);
+    // glEnableVertexAttribArray(1);
+
+    // vector<vec4> gridColor = vector((int)grid.size(), vec4(0.2f, 0.2f, 0.2f, 1.f));
+    // glBindBuffer(GL_ARRAY_BUFFER, colorsVBO);
+    // glBufferData(GL_ARRAY_BUFFER, gridColor.size() * sizeof(vec4), gridColor.data(), GL_DYNAMIC_DRAW);
+
+    // glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
+    // glVertexAttribDivisor(2, 1);
+    // glEnableVertexAttribArray(2);
+    
+    // glUniform2f(ShaderProgram::getVarLoc("viewport"), (float)app->width(), (float)app->height());
+
+    // glBindVertexArray(VAO);
+    // glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, (int)grid.size());
+
+    // glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     particleShader.use();
 
@@ -207,7 +235,7 @@ int main(){
         if (!paused){
             if (enableObstacle){
                 vec2 obstaclePos = vec2(app->mouseX() - app->width() * 0.5f, app->height() * 0.5f - app->mouseY());
-                vec2 obstacleVel = (obstaclePos - previousObstaclePos) * (float)stats->fps * 0.f;
+                vec2 obstacleVel = (obstaclePos - previousObstaclePos) / 0.03f;
                 if (!previousEnableObstacle) obstacleVel = vec2(0.f);
                 previousObstaclePos = obstaclePos;
     

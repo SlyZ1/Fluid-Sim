@@ -26,8 +26,9 @@ void main(){
     if (dist2 < (radius + obstacleRadius) * (radius + obstacleRadius)){
         float d = sqrt(dist2);
         vec2 dir = diff / d;
-        partPos[i] += (radius + obstacleRadius - d) * dir;
-        partVel[i] = partVel[i] - max(0., dot(partVel[i], dir)) * dir + obstacleVel;
+        //partPos[i] += (radius + obstacleRadius - d) * dir;
+        vec2 vel = partVel[i];
+        partVel[i] = obstacleVel;
     }
 
     if (pos.x < minPos.x + 1e-2f){

@@ -15,13 +15,20 @@ private:
     GLuint partVelBuffer = 0;
     GLuint velXBuffer = 0;
     GLuint velYBuffer = 0;
+    GLuint oldVelXBuffer = 0;
+    GLuint oldVelYBuffer = 0;
     GLuint rXBuffer = 0;
     GLuint rYBuffer = 0;
+    GLuint isAirBuffer = 0;
 
     GLuint cellOfBuffer = 0;
     GLuint blockSumBuffer = 0;
     GLuint cellParticleIdsBuffer = 0;
     GLuint firstCellParticleBuffer = 0;
+    GLuint firstCellParticleBuffer2 = 0;
+
+    GLuint correctionBuffer;
+    GLuint numCorrectionBuffer;
 
     ShaderProgram integrateShader = {};
 
@@ -32,9 +39,18 @@ private:
     ShaderProgram localSumShader = {};
     ShaderProgram smallSumShader = {};
     ShaderProgram globalSumShader = {};
+    ShaderProgram cellParticleIdShader = {};
     ShaderProgram resetBuffersShader = {};
     ShaderProgram getCorrectionsShader = {};
     ShaderProgram applyCorrectionsShader = {};
+
+    ShaderProgram resetFloatBufferShader = {};
+    ShaderProgram p2gShader = {};
+    ShaderProgram applyWeightsShader = {};
+    
+    ShaderProgram solveIncompressibilityShader = {};
+    
+    ShaderProgram g2pShader = {};
 
     int partN = 0;
 
@@ -54,11 +70,13 @@ private:
     ivec2 cellToCoord(int cell, int nx);
     vec2 cellToPos(int cell, int nx, int ny);
 
+    void resetFloatBuffer(GLuint buffer, int n);
     void resetUintBuffer(GLuint buffer, int n);
     void prefixSum(GLuint data, GLuint blockSum, int n);
+    void countingSort();
 
     void integrateParticles();
-    void pushAppartParticles();
+    void pushAppartParticles(int iterations);
     void particleCollisions();
     void particlesToGrid();
     void solveIncompressibility(int iterations);

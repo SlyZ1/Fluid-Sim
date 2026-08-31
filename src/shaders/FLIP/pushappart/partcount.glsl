@@ -18,5 +18,5 @@ void main(){
 
     int cell = posToCell(partPos[i], gridX, gridY);
     cellOf[i] = uint(cell);
-    atomicAdd(numCellParticles[i], 1u);
+    atomicAdd(numCellParticles[cell], 1u);
 }

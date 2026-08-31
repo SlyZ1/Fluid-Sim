@@ -9,7 +9,8 @@ uniform int length;
 void main(){
     uint i = gl_GlobalInvocationID.x;
     uint blockIdx = gl_WorkGroupID.x;
-    if (i >= length) return;
+    if (2*i >= length) return;
 
-    result[i] += blockSumScanned[blockIdx];
+    result[2*i] += blockSumScanned[blockIdx];
+    result[2*i+1] += blockSumScanned[blockIdx];
 }

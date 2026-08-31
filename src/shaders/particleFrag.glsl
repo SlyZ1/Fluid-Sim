@@ -8,5 +8,5 @@ void main()
     float dist = length(vClipPos);
     float aa = fwidth(dist);
     float alpha = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, dist);
-    FragColor = vec4(vColor.rgb, alpha);
+    FragColor = vec4(vColor.rgb, 1);
 }
