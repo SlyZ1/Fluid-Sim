@@ -58,7 +58,7 @@ void App::setClearColor(float r, float g, float b, float a){
 }
 
 void App::startFrame(int frame){
-    if(keyPressedOnce(GLFW_KEY_ESCAPE, frame))
+    if(keyPressedOnce(GLFW_KEY_Q, frame) && keyPressed(GLFW_KEY_LEFT_ALT))
         glfwSetWindowShouldClose(m_window, true);
     glClear(GL_COLOR_BUFFER_BIT);
 

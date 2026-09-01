@@ -1,1 +1,1 @@
-build\src\camera.obj: src\camera.cpp C:\Users\conta\Documents\Dev\CPP\Fluids\src\camera.hpp
+build\src\camera.obj: src\camera.cpp C:\Users\conta\Documents\Dev\CPP\Fluids\src\camera.hpp C:\Users\conta\Documents\Dev\CPP\Fluids\src\helpers/utils.hpp C:\Users\conta\Documents\Dev\CPP\Fluids\src\shader_program.hpp

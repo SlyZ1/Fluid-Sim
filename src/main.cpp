@@ -41,6 +41,7 @@ bool previousEnableObstacle = false;
 bool enableObstacle = false;
 
 bool paused = false;
+bool freeView = true;
 
 extern "C" {
     __declspec(dllexport) unsigned long NvOptimusEnablement = 1;
@@ -51,6 +52,7 @@ void init(){
     app = make_shared<App>();
     app->init(1280, 720, "Default GLSL");
     app->setClearColor(0,0,0,1);
+    app->toggleCursor(!freeView);
 
     particleShader.create();
     particleShader.load(GL_VERTEX_SHADER, "src/shaders/particleVert.glsl");
@@ -172,6 +174,7 @@ void render(){
 
     glUniform2f(ShaderProgram::getVarLoc("viewport"), (float)app->width(), (float)app->height());
     glUniform1f(ShaderProgram::getVarLoc("particleRadius"), particleRadius);
+    glUniformMatrix4fv(ShaderProgram::getVarLoc("uView"), 1, GL_FALSE, &camera->viewMatrix()[0][0]);
 
     glBindVertexArray(VAO);
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, (int)poses.size());
@@ -189,6 +192,31 @@ void updatePosesAndColors(){
 }
 
 void inputs(){
+    if (app->keyPressedOnce(GLFW_KEY_ESCAPE, frameCount)){
+        freeView = !freeView;
+        app->toggleCursor(!freeView);
+        if (!freeView){
+            camera->hasStoppedMoving();
+        } else {
+            camera->resetMousePos(app->mouseX(), app->mouseY());
+        }
+    }
+
+    if (freeView){
+        CameraMoveInputs inputs = {
+            app->keyPressed(GLFW_KEY_W), 
+            app->keyPressed(GLFW_KEY_S), 
+            app->keyPressed(GLFW_KEY_D), 
+            app->keyPressed(GLFW_KEY_A),
+            app->keyPressed(GLFW_KEY_SPACE),
+            app->keyPressed(GLFW_KEY_LEFT_CONTROL),
+            app->keyPressed(GLFW_KEY_LEFT_SHIFT),
+            app->keyPressed(GLFW_KEY_C)
+        };
+        camera->move(inputs, stats->frameTime);
+        camera->rotate(app->mouseX(), app->mouseY());
+    };
+
     // Hot reload shaders
     if (app->keyPressedOnce(GLFW_KEY_R, frameCount)){
         particleShader.reload();
