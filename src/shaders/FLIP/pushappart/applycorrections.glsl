@@ -1,9 +1,9 @@
 #version 430 core
 layout(local_size_x = 256) in;
 
-layout(std430, binding = 0) readonly buffer CorrectionsBuffer { vec2[] corrections; };
+layout(std430, binding = 0) readonly buffer CorrectionsBuffer { vec4[] corrections; };
 layout(std430, binding = 1) readonly buffer NumCorrectionsBuffer { int[] numCorrections; };
-layout(std430, binding = 4) buffer PartPosBuffer { vec2[] partPos; };
+layout(std430, binding = 4) buffer PartPosBuffer { vec4[] partPos; };
 
 uniform int partN;
 
@@ -12,5 +12,5 @@ void main(){
     if (i >= partN) return;
 
     int num = numCorrections[i];
-    if (num > 0) partPos[i] += corrections[i] / float(num);
+    if (num > 0) partPos[i].xyz += corrections[i].xyz / float(num);
 }

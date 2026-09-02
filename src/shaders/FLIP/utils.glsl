@@ -1,36 +1,36 @@
-ivec2 cellToCoord(int cell, int nx){
+ivec3 cellToCoord(int cell, int nx, int ny){
     int column = cell % nx;
-    int row = (cell - column) / nx;
-    return ivec2(column, row);
+    int rest = (cell - column) / nx;
+    int row = rest % ny;
+    int layer = (rest - row) / ny;
+    return ivec3(column, row, layer);
 }
 
-int coordToCell(ivec2 coord, int nx, int ny){
-    return clamp(coord.x % nx + nx * coord.y, 0, nx * ny - 1);
+int coordToCell(ivec3 coord, int nx, int ny, int nz){
+    return clamp(coord.x % nx + nx * (coord.y % ny) + nx * ny * coord.z, 0, nx * ny * nz - 1);
 }
 
-int posToCell(vec2 pos, int nx, int ny){
-    int column = int(floor(pos.x / h + float(nx % 2) * 0.5));
-    int row = int(floor(pos.y / h + float(ny % 2) * 0.5));
-    column += int(floor(nx * 0.5));
-    row += int(floor(ny * 0.5));
-    return coordToCell(ivec2(column, row), nx, ny);
+int posToCell(vec3 pos, int nx, int ny, int nz){
+    ivec3 n = ivec3(nx, ny, nz);
+    vec3 floatCoord = floor(pos / h + vec3(n % 2) * 0.5);
+    ivec3 coord = ivec3(floatCoord) + ivec3(floor(vec3(n) * 0.5));
+    return coordToCell(coord, nx, ny, nz);
 }
 
-ivec2 posToCoord(vec2 pos, int nx, int ny){
-    int column = int(floor(pos.x / h + (nx % 2) * 0.5));
-    int row = int(floor(pos.y / h + (ny % 2) * 0.5));
-    column += int(floor(nx * 0.5));
-    row += int(floor(ny * 0.5));
-    return ivec2(column, row);
+ivec3 posToCoord(vec3 pos, int nx, int ny, int nz){
+    ivec3 n = ivec3(nx, ny, nz);
+    vec3 floatCoord = floor(pos / h + vec3(n % 2) * 0.5);
+    ivec3 coord = ivec3(floatCoord) + ivec3(floor(vec3(n) * 0.5));
+    return coord;
 }
 
-vec2 cellToPos(int cell, int nx, int ny){
-    ivec2 coord = cellToCoord(cell, nx);
-    vec2 pos = (vec2(coord) - vec2(nx - 1, ny - 1) * 0.5) * h;
+vec3 cellToPos(int cell, int nx, int ny, int nz){
+    ivec3 coord = cellToCoord(cell, nx, ny);
+    vec3 pos = (vec3(coord) - vec3(nx - 1, ny - 1, nz - 1) * 0.5) * h;
     return pos;
 }
 
-vec2 coordToPos(ivec2 coord, int nx, int ny){
-    vec2 pos = (vec2(coord) - vec2(nx - 1, ny - 1) * 0.5) * h;
+vec3 coordToPos(ivec3 coord, int nx, int ny, int nz){
+    vec3 pos = (vec3(coord) - vec3(nx - 1, ny - 1, nz - 1) * 0.5) * h;
     return pos;
 }

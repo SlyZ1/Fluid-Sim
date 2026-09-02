@@ -8,6 +8,7 @@
 #include <glm/gtx/norm.hpp>
 #include <iostream>
 #include "helpers/utils.hpp"
+#include "helpers/stats.hpp"
 
 class SolverGPU {
 private:
@@ -15,10 +16,13 @@ private:
     GLuint partVelBuffer = 0;
     GLuint velXBuffer = 0;
     GLuint velYBuffer = 0;
+    GLuint velZBuffer = 0;
     GLuint oldVelXBuffer = 0;
     GLuint oldVelYBuffer = 0;
+    GLuint oldVelZBuffer = 0;
     GLuint rXBuffer = 0;
     GLuint rYBuffer = 0;
+    GLuint rZBuffer = 0;
     GLuint isAirBuffer = 0;
 
     GLuint cellOfBuffer = 0;
@@ -52,6 +56,14 @@ private:
     
     ShaderProgram g2pShader = {};
 
+    GPUTimer integrateTimer = {};
+    GPUTimer pushAppartTimer = {};
+    GPUTimer collisionTimer = {};
+    GPUTimer p2gTimer = {};
+    GPUTimer incompressibilityTimer = {};
+    GPUTimer g2pTimer = {};
+    GPUTimer scanTimer = {};
+
     int partN = 0;
 
     vec2 obstaclePos = vec2(0.f);
@@ -62,13 +74,14 @@ private:
     float h = 0.f;
     int gridX = 0;
     int gridY = 0;
+    int gridZ = 0;
     
     vector<vector<int>> particlesInGrid = {};
 
     float dt = 0.f;
 
-    ivec2 cellToCoord(int cell, int nx);
-    vec2 cellToPos(int cell, int nx, int ny);
+    ivec3 cellToCoord(int cell, int nx, int ny);
+    vec3 cellToPos(int cell, int nx, int ny, int nz);
 
     void resetFloatBuffer(GLuint buffer, int n);
     void resetUintBuffer(GLuint buffer, int n);
@@ -83,10 +96,11 @@ private:
     void gridToParticles();
 
 public:
-    SolverGPU(int partN, float radius, float h, int gridX, int gridY, float timestep = 0.015f);
+    SolverGPU(int partN, float radius, float h, int gridX, int gridY, int gridZ, float timestep = 0.015f);
 
     void updateFlip();
     void updateObstacle(vec2 pos, vec2 vel, float radius);
+    void printTimers();
 
     GLuint getPosBuffer() const { return partPosBuffer; };
     GLuint getVelBuffer() const { return partVelBuffer; };

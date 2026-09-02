@@ -1,25 +1,28 @@
 #include "solverGPU.hpp"
 
-SolverGPU::SolverGPU(int partN, float radius, float h, int gridX, int gridY, float timestep)
-: partN(partN), radius(radius), h(h), gridX(gridX), gridY(gridY), dt(timestep) {
-    vector<float> velX = vector<float>((gridX + 1) * gridY, 0.f);
-    vector<float> velY = vector<float>(gridX * (gridY + 1), 0.f);
-    vector<float> rX = vector<float>((gridX + 1) * gridY, 0.f);
-    vector<float> rY = vector<float>(gridX * (gridY + 1), 0.f);
-    vector<vec2> partVel = vector<vec2>(partN, vec2(0.f));
-    vector<vec2> partPos = vector<vec2>(partN, vec2(0.f));
-    int a = (int)glm::floor(sqrt(partN));
+SolverGPU::SolverGPU(int partN, float radius, float h, int gridX, int gridY, int gridZ, float timestep)
+: partN(partN), radius(radius), h(h), gridX(gridX), gridY(gridY), gridZ(gridZ), dt(timestep) {
+    vector<float> velX = vector<float>((gridX + 1) * gridY * gridZ, 0.f);
+    vector<float> velY = vector<float>(gridX * (gridY + 1) * gridZ, 0.f);
+    vector<float> velZ = vector<float>(gridX * gridY * (gridZ + 1), 0.f);
+    vector<float> rX = vector<float>((gridX + 1) * gridY * gridZ, 0.f);
+    vector<float> rY = vector<float>(gridX * (gridY + 1) * gridZ, 0.f);
+    vector<float> rZ = vector<float>(gridX * gridY * (gridZ + 1), 0.f);
+    vector<vec4> partVel = vector<vec4>(partN, vec4(0.f));
+    vector<vec4> partPos = vector<vec4>(partN, vec4(0.f));
+    int a = (int)glm::floor(pow(partN, 1.0f / 3.0f));
     for (int i = 0; i < partN; i++)
     {
-        float x = (float)(i % a);
-        int y = (int)((i - x) / a);
-        x += (y % 2) * 0.5f;
-        partPos[i] = (vec2(x - 10,y) - vec2(a * 0.5f)) * 2.f * radius * 1.f;
+        int x = (i % a);
+        int rest = (i - x) / a;
+        int y = rest % a;
+        int z = (rest - y) / a;
+        partPos[i] = (vec4(x, y, z, 1) + 0.f * vec4(1, 0, 1, 0) * 0.5f * (float)((int)y % 2) - vec4(a * 0.5f)) * 2.f * radius * 1.f;
     }
 
-    glGenBuffers(1, &rXBuffer); glGenBuffers(1, &rYBuffer);
-    glGenBuffers(1, &velXBuffer); glGenBuffers(1, &velYBuffer); 
-    glGenBuffers(1, &oldVelXBuffer); glGenBuffers(1, &oldVelYBuffer); 
+    glGenBuffers(1, &rXBuffer); glGenBuffers(1, &rYBuffer); glGenBuffers(1, &rZBuffer);
+    glGenBuffers(1, &velXBuffer); glGenBuffers(1, &velYBuffer); glGenBuffers(1, &velZBuffer);
+    glGenBuffers(1, &oldVelXBuffer); glGenBuffers(1, &oldVelYBuffer); glGenBuffers(1, &oldVelZBuffer);
     glGenBuffers(1, &partPosBuffer); glGenBuffers(1, &partVelBuffer); 
     glGenBuffers(1, &isAirBuffer);
 
@@ -29,11 +32,17 @@ SolverGPU::SolverGPU(int partN, float radius, float h, int gridX, int gridY, flo
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, rYBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, rY.size() * sizeof(float), rY.data(), GL_DYNAMIC_DRAW);
     
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, rZBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, rZ.size() * sizeof(float), rZ.data(), GL_DYNAMIC_DRAW);
+    
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, velXBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, velX.size() * sizeof(float), velX.data(), GL_DYNAMIC_DRAW);
      
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, velYBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, velY.size() * sizeof(float), velY.data(), GL_DYNAMIC_DRAW);
+    
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, velZBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, velZ.size() * sizeof(float), velZ.data(), GL_DYNAMIC_DRAW);
     
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, oldVelXBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, velX.size() * sizeof(float), velX.data(), GL_DYNAMIC_DRAW);
@@ -41,14 +50,17 @@ SolverGPU::SolverGPU(int partN, float radius, float h, int gridX, int gridY, flo
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, oldVelYBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, velY.size() * sizeof(float), velY.data(), GL_DYNAMIC_DRAW);
     
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, oldVelZBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, velZ.size() * sizeof(float), velZ.data(), GL_DYNAMIC_DRAW);
+    
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, partPosBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, partPos.size() * sizeof(vec2), partPos.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, partPos.size() * sizeof(vec4), partPos.data(), GL_DYNAMIC_DRAW);
      
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, partVelBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, partVel.size() * sizeof(vec2), partVel.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, partVel.size() * sizeof(vec4), partVel.data(), GL_DYNAMIC_DRAW);
     
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, isAirBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, gridX * gridY * sizeof(uint), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, gridX * gridY * gridZ * sizeof(uint), nullptr, GL_DYNAMIC_DRAW);
 
     integrateShader.create();
     integrateShader.load(GL_COMPUTE_SHADER, "src/shaders/FLIP/integrate.glsl");
@@ -61,7 +73,7 @@ SolverGPU::SolverGPU(int partN, float radius, float h, int gridX, int gridY, flo
     glGenBuffers(1, &blockSumBuffer); glGenBuffers(1, &cellOfBuffer);
     glGenBuffers(1, &firstCellParticleBuffer); glGenBuffers(1, &cellParticleIdsBuffer);
     glGenBuffers(1, &firstCellParticleBuffer2);
-    int ceiledN = (int)glm::ceil((float)(gridX * gridY + 1) / 512.f) * 512;
+    int ceiledN = (int)glm::ceil((float)(gridX * gridY * gridZ + 1) / 512.f) * 512;
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, blockSumBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, ceiledN / 512 * sizeof(uint), nullptr, GL_DYNAMIC_DRAW);
@@ -81,7 +93,7 @@ SolverGPU::SolverGPU(int partN, float radius, float h, int gridX, int gridY, flo
     glGenBuffers(1, &correctionBuffer); glGenBuffers(1, &numCorrectionBuffer);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, correctionBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, partN * sizeof(vec2), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, partN * sizeof(vec4), nullptr, GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, numCorrectionBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, partN * sizeof(int), nullptr, GL_DYNAMIC_DRAW);
@@ -141,17 +153,27 @@ SolverGPU::SolverGPU(int partN, float radius, float h, int gridX, int gridY, flo
     g2pShader.create();
     g2pShader.load(GL_COMPUTE_SHADER, "src/shaders/FLIP/g2p.glsl");
     g2pShader.link();
+
+    integrateTimer.init();
+    collisionTimer.init();
+    pushAppartTimer.init();
+    p2gTimer.init();
+    incompressibilityTimer.init();
+    g2pTimer.init();
+    scanTimer.init();
 }
 
-ivec2 SolverGPU::cellToCoord(int cell, int nx){
+ivec3 SolverGPU::cellToCoord(int cell, int nx, int ny){
     int column = cell % nx;
-    int row = (cell - column) / nx;
-    return ivec2(column, row);
+    int rest = (cell - column) / nx;
+    int row = rest % ny;
+    int layer = (rest - row) / ny;
+    return ivec3(column, row, layer);
 }
 
-vec2 SolverGPU::cellToPos(int cell, int nx, int ny){
-    ivec2 coord = cellToCoord(cell, nx);
-    vec2 pos = ((vec2)coord - vec2(nx - 1, ny - 1) * 0.5f) * h;
+vec3 SolverGPU::cellToPos(int cell, int nx, int ny, int nz){
+    ivec3 coord = cellToCoord(cell, nx, ny);
+    vec3 pos = ((vec3)coord - vec3(nx - 1, ny - 1, nz - 1) * 0.5f) * h;
     return pos;
 }
 
@@ -202,7 +224,7 @@ void SolverGPU::countingSort(){
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     // Reset the buffers
-    int ceiledN = (int)glm::ceil((float)(gridX * gridY + 1) / 512.f) * 512;
+    int ceiledN = (int)glm::ceil((float)(gridX * gridY * gridZ + 1) / 512.f) * 512;
     resetUintBuffer(firstCellParticleBuffer, ceiledN);
     resetUintBuffer(firstCellParticleBuffer2, ceiledN);
     resetUintBuffer(blockSumBuffer, ceiledN / 512);
@@ -220,6 +242,7 @@ void SolverGPU::countingSort(){
     glUniform1i(ShaderProgram::getVarLoc("partN"), partN);
     glUniform1i(ShaderProgram::getVarLoc("gridX"), gridX);
     glUniform1i(ShaderProgram::getVarLoc("gridY"), gridY);
+    glUniform1i(ShaderProgram::getVarLoc("gridZ"), gridZ);
     glUniform1f(ShaderProgram::getVarLoc("h"), h);
     partCountShader.dispatch((partN + 63) / 64);
     
@@ -250,7 +273,7 @@ void SolverGPU::pushAppartParticles(int iterations){
     countingSort();
 
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
+    
     const float minDist = 2.0f * radius;
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, correctionBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, numCorrectionBuffer);
@@ -260,32 +283,27 @@ void SolverGPU::pushAppartParticles(int iterations){
     for (int i = 0; i < iterations; i++)
     {
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        
-        resetBuffersShader.use();
-        glUniform1i(ShaderProgram::getVarLoc("partN"), partN);
-        resetBuffersShader.dispatch((partN + 255) / 256);
-        
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        
+
         getCorrectionsShader.use();
         glUniform1i(ShaderProgram::getVarLoc("partN"), partN);
         glUniform1i(ShaderProgram::getVarLoc("gridX"), gridX);
         glUniform1i(ShaderProgram::getVarLoc("gridY"), gridY);
+        glUniform1i(ShaderProgram::getVarLoc("gridZ"), gridZ);
         glUniform1f(ShaderProgram::getVarLoc("h"), h);
         glUniform1f(ShaderProgram::getVarLoc("minDist"), minDist);
         getCorrectionsShader.dispatch((partN + 63) / 64);
-
+        
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
+        
         applyCorrectionsShader.use();
         glUniform1i(ShaderProgram::getVarLoc("partN"), partN);
         applyCorrectionsShader.dispatch((partN + 255) / 256);
+
+        //particleCollisions();
     }
 }
 
 void SolverGPU::particleCollisions(){
-    countingSort();
-
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     collisionShader.use();
@@ -293,12 +311,12 @@ void SolverGPU::particleCollisions(){
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, partPosBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, partVelBuffer);
 
-    vec2 minPos = cellToPos(0, gridX, gridY);
-    vec2 maxPos = cellToPos(gridX * gridY - 1, gridX, gridY);
+    vec3 minPos = cellToPos(0, gridX, gridY, gridZ);
+    vec3 maxPos = cellToPos(gridX * gridY * gridZ - 1, gridX, gridY, gridZ);
 
     glUniform1i(ShaderProgram::getVarLoc("partN"), partN);
-    glUniform2f(ShaderProgram::getVarLoc("minPos"), minPos.x, minPos.y);
-    glUniform2f(ShaderProgram::getVarLoc("maxPos"), maxPos.x, maxPos.y);
+    glUniform3f(ShaderProgram::getVarLoc("minPos"), minPos.x, minPos.y, minPos.z);
+    glUniform3f(ShaderProgram::getVarLoc("maxPos"), maxPos.x, maxPos.y, maxPos.z);
     glUniform1f(ShaderProgram::getVarLoc("radius"), radius);
     glUniform2f(ShaderProgram::getVarLoc("obstaclePos"), obstaclePos.x, obstaclePos.y);
     glUniform2f(ShaderProgram::getVarLoc("obstacleVel"), obstacleVel.x, obstacleVel.y);
@@ -315,24 +333,29 @@ void SolverGPU::resetFloatBuffer(GLuint buffer, int n){
 }
 
 void SolverGPU::particlesToGrid(){
+    countingSort();
+
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, partPosBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, partVelBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, rXBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, rYBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, velXBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, velYBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, isAirBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, firstCellParticleBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, cellParticleIdsBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, rZBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, velXBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, velYBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, velZBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, isAirBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, firstCellParticleBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, cellParticleIdsBuffer);
 
     p2gShader.use();
     glUniform1i(ShaderProgram::getVarLoc("partN"), partN);
     glUniform1i(ShaderProgram::getVarLoc("gridX"), gridX);
     glUniform1i(ShaderProgram::getVarLoc("gridY"), gridY);
+    glUniform1i(ShaderProgram::getVarLoc("gridZ"), gridZ);
     glUniform1f(ShaderProgram::getVarLoc("h"), h);
-    p2gShader.dispatch((gridX + 7) / 8, (gridY + 7) / 8);
+    p2gShader.dispatch((gridX + 7) / 8, (gridY + 7) / 8, (gridZ + 7) / 8);
     
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -340,8 +363,9 @@ void SolverGPU::particlesToGrid(){
     glUniform1i(ShaderProgram::getVarLoc("partN"), partN);
     glUniform1i(ShaderProgram::getVarLoc("gridX"), gridX);
     glUniform1i(ShaderProgram::getVarLoc("gridY"), gridY);
+    glUniform1i(ShaderProgram::getVarLoc("gridZ"), gridZ);
     glUniform1f(ShaderProgram::getVarLoc("h"), h);
-    applyWeightsShader.dispatch((gridX + 15) / 16, (gridY + 15) / 16);
+    applyWeightsShader.dispatch((gridX+1 + 7) / 8, (gridY+1 + 7) / 8, (gridZ+1 + 7) / 8);
     
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
@@ -351,21 +375,27 @@ void SolverGPU::solveIncompressibility(int iterations){
 
     glBindBuffer(GL_COPY_READ_BUFFER, velXBuffer);
     glBindBuffer(GL_COPY_WRITE_BUFFER, oldVelXBuffer);
-    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, (gridX + 1) * gridY * sizeof(float));
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, (gridX + 1) * gridY * gridZ * sizeof(float));
     glBindBuffer(GL_COPY_READ_BUFFER, velYBuffer);
     glBindBuffer(GL_COPY_WRITE_BUFFER, oldVelYBuffer);
-    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, gridX * (gridY + 1) * sizeof(float));
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, gridX * (gridY + 1) * gridZ * sizeof(float));
+    glBindBuffer(GL_COPY_READ_BUFFER, velZBuffer);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, oldVelZBuffer);
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, gridX * gridY * (gridZ + 1) * sizeof(float));
     
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     
     solveIncompressibilityShader.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, rXBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, rYBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, velXBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, velYBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, isAirBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, rZBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, velXBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, velYBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, velZBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, isAirBuffer);
     glUniform1i(ShaderProgram::getVarLoc("gridX"), gridX);
     glUniform1i(ShaderProgram::getVarLoc("gridY"), gridY);
+    glUniform1i(ShaderProgram::getVarLoc("gridZ"), gridZ);
     glUniform1f(ShaderProgram::getVarLoc("h"), h);
 
     int isPair = 0;
@@ -376,7 +406,7 @@ void SolverGPU::solveIncompressibility(int iterations){
         
         solveIncompressibilityShader.use();
         glUniform1i(ShaderProgram::getVarLoc("isPair"), isPair);
-        solveIncompressibilityShader.dispatch((gridX + 7) / 8, (gridY + 7) / 8);
+        solveIncompressibilityShader.dispatch((gridX + 7) / 8, (gridY + 7) / 8, (gridZ + 7) / 8);
 
         isPair = 1 - isPair;
     }
@@ -399,29 +429,64 @@ void SolverGPU::gridToParticles(){
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, partVelBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, velXBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, velYBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, oldVelXBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, oldVelYBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, isAirBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, velZBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, oldVelXBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, oldVelYBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, oldVelZBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, isAirBuffer);
     glUniform1i(ShaderProgram::getVarLoc("partN"), partN);
     glUniform1i(ShaderProgram::getVarLoc("gridX"), gridX);
     glUniform1i(ShaderProgram::getVarLoc("gridY"), gridY);
+    glUniform1i(ShaderProgram::getVarLoc("gridZ"), gridZ);
     glUniform1f(ShaderProgram::getVarLoc("h"), h);
     g2pShader.dispatch((partN + 63) / 64);
 }
 
 void SolverGPU::updateFlip(){
+    integrateTimer.beginFrame();
     integrateParticles();
+    integrateTimer.endFrame();
+    collisionTimer.beginFrame();
     particleCollisions();
-    pushAppartParticles(10);
+    collisionTimer.endFrame();
+    pushAppartTimer.beginFrame();
+    pushAppartParticles(5);
+    pushAppartTimer.endFrame();
     particleCollisions();
     
+    p2gTimer.beginFrame();
     particlesToGrid();
-    solveIncompressibility(150);
+    p2gTimer.endFrame();
+    incompressibilityTimer.beginFrame();
+    solveIncompressibility(300);
+    incompressibilityTimer.endFrame();
+    g2pTimer.beginFrame();
     gridToParticles();
+    g2pTimer.endFrame();
 }
 
 void SolverGPU::updateObstacle(vec2 pos, vec2 vel, float rad){
     obstaclePos = pos;
     obstacleVel = vel;
     obstacleRadius = rad;
+}
+
+void SolverGPU::printTimers(){
+    float totalMs = integrateTimer.getLastResultMs();
+    totalMs += collisionTimer.getLastResultMs();
+    totalMs += pushAppartTimer.getLastResultMs();
+    totalMs += p2gTimer.getLastResultMs();
+    totalMs += incompressibilityTimer.getLastResultMs();
+    totalMs += g2pTimer.getLastResultMs();
+    cout << "Integrate : " << integrateTimer.getLastResultMs() << "ms (" << 100 * integrateTimer.getLastResultMs() / totalMs << "%)";
+    cout << ", Collision : " << collisionTimer.getLastResultMs() << "ms (" << 100 * collisionTimer.getLastResultMs() / totalMs << "%)";
+    cout << ", PushAppart : " << pushAppartTimer.getLastResultMs() << "ms (" << 100 * pushAppartTimer.getLastResultMs() / totalMs << "%)";
+    //cout << ", Scan : " << scanTimer.getLastResultMs() << "ms (" << 100 * scanTimer.getLastResultMs() / totalMs << "%)";
+    cout << ", P2G : " << p2gTimer.getLastResultMs() << "ms (" << 100 * p2gTimer.getLastResultMs() / totalMs << "%)";
+    cout << ", Incompressibility : " << incompressibilityTimer.getLastResultMs() << "ms (" << 100 * incompressibilityTimer.getLastResultMs() / totalMs << "%)";
+    cout << ", G2P : " << g2pTimer.getLastResultMs() << "ms (" << 100 * g2pTimer.getLastResultMs() / totalMs << "%)";
+    
+    cout << "  ---  " << totalMs << "ms";
+
+    cout << endl << endl;
 }

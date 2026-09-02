@@ -45,7 +45,8 @@ class Camera {
         void rotate(float mouseX, float mouseY);
         void resetMousePos(float mouseX, float mouseY);
         vec3 lookDir();
-        vec3 position() { return m_pos; }
+        vec3 position() const { return m_pos; }
+        void setPosition(vec3 newPos) { m_pos = newPos; }
         bool getIsMoving(int frame);
         void hasStoppedMoving() { m_isMoving = false; m_isLooking = false; }
         void updateGPU();
