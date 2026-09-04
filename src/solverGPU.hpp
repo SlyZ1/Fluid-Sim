@@ -9,9 +9,12 @@
 #include <iostream>
 #include "helpers/utils.hpp"
 #include "helpers/stats.hpp"
+#include "cgs/cgs.hpp"
 
 class SolverGPU {
 private:
+    CGS cgs = {};
+
     GLuint partPosBuffer = 0;
     GLuint partVelBuffer = 0;
     GLuint velXBuffer = 0;
@@ -24,6 +27,9 @@ private:
     GLuint rYBuffer = 0;
     GLuint rZBuffer = 0;
     GLuint isAirBuffer = 0;
+
+    GLuint minusDivBuffer = 0;
+    GLuint pressureBuffer = 0;
 
     GLuint cellOfBuffer = 0;
     GLuint blockSumBuffer = 0;
@@ -53,6 +59,10 @@ private:
     ShaderProgram applyWeightsShader = {};
     
     ShaderProgram solveIncompressibilityShader = {};
+    ShaderProgram sparseMatVecShader = {};
+    ShaderProgram computeMinusDivShader = {};
+    ShaderProgram pressureToVelShader = {};
+    ShaderProgram setAirCellsToZeroShader = {};
     
     ShaderProgram g2pShader = {};
 
@@ -92,7 +102,7 @@ private:
     void pushAppartParticles(int iterations);
     void particleCollisions();
     void particlesToGrid();
-    void solveIncompressibility(int iterations);
+    void solveIncompressibility(int iterations, bool useCGS = true);
     void gridToParticles();
 
 public:
@@ -101,6 +111,10 @@ public:
     void updateFlip();
     void updateObstacle(vec2 pos, vec2 vel, float radius);
     void printTimers();
+    void createBuffers();
+    void reload();
+
+    void setDt(float newDt) { dt = newDt; };
 
     GLuint getPosBuffer() const { return partPosBuffer; };
     GLuint getVelBuffer() const { return partVelBuffer; };

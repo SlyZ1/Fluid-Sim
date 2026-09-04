@@ -33,6 +33,8 @@ class ShaderProgram {
         void link();
         void use();
         void dispatch(GLuint x = 1, GLuint y = 1, GLuint z = 1);
+        static void indirectBarrier();
+        static void indirectDispatch(GLuint buffer, int offset = 0);
         void destroy();
         static GLuint getVarLoc(const string& name);
 

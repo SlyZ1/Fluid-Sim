@@ -1,12 +1,12 @@
 #version 430 core
 layout(local_size_x = 256) in;
 
-shared uint temp[1024];
+shared uint temp[4096];
 layout(std430, binding = 0) buffer DataBuffer { uint data[]; };
 
 uniform int length;
 
-const int ELEMENTS_PER_THREAD = 4;
+const int ELEMENTS_PER_THREAD = 16;
 
 void main(){
     uint tid = gl_LocalInvocationID.x;

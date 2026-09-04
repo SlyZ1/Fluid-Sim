@@ -2,6 +2,7 @@
 layout (location = 0) in vec3 vPos;
 layout (location = 1) in vec3 cPos;
 layout (location = 2) in vec4 color;
+layout (location = 3) in vec3 cVel;
 out vec3 vClipPos;
 out vec4 vColor;
 
@@ -12,9 +13,28 @@ uniform mat4 uProj;
 void main()
 {
     vClipPos = vPos;
-    vec4 worldPos = vec4((cPos + vPos * particleRadius), 1.0);
+    vec4 worldPos = vec4(cPos, 1.0);
     worldPos.z -= 1000;
-    
-    gl_Position = uProj * uView * worldPos;
+    vec4 viewPos = uView * worldPos;
+    viewPos.xy += vPos.xy * particleRadius;
+    gl_Position = uProj * viewPos;
+
+    float t = clamp(length(cVel) / 50.0, 0.0, 1.0);
+
+    vec4 blue = vec4(0.02, 0.04, 0.6, 1.0);
+    vec4 blue2 = vec4(0.07, 0.55, 0.87, 0.0);
+    vec4 white = vec4(0.51, 0.79, 1.0, 1.0);
+
+    float edge = 0.7;
+
+    float t1 = smoothstep(0.0, edge, t);
+    float t2 = smoothstep(edge, 1.0, t);
+
+    vec4 color = mix(
+        mix(blue, blue2, t1),
+        mix(blue2, white, t2),
+        step(edge, t)
+    );
+
     vColor = color;
 }

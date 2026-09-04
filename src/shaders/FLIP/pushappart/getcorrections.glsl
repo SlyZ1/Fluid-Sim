@@ -65,12 +65,13 @@ void main(){
                     if (dist2 < minDist * minDist)
                     {
                         vec3 push = vec3(0);
-                        if (dist2 > 1e-12){
+                        const float correctionFactor = 0.5;
+                        if (dist2 > 1e-9){
                             float dist = sqrt(dist2);
-                            push = 0.5 * diff * (minDist - dist) / dist;
+                            push = correctionFactor * diff * (minDist - dist) / dist;
                         }
                         else{
-                            push = 0.5 * minDist * pseudoRandomDir(i, j);
+                            push = correctionFactor * minDist * pseudoRandomDir(i, j);
                         }
                         currentCorrections += push;
                         currentNumCorrections++;

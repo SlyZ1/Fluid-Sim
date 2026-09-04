@@ -32,8 +32,8 @@ FPSCounter fpsCounter = {};
 
 vector<vec3> poses = { vec3(0,0,0), vec3(0.5f, 0.f, 0.f) };
 vector<vec4> colors = { vec4(1.f), vec4(1.f) };
-float particleRadius = 5.f;
-int numParticle = 100000;
+float particleRadius = 3.f;
+int numParticle = 150000;
 int iterations = 1;
 
 vec2 previousObstaclePos = vec2(0.f);
@@ -64,29 +64,39 @@ void init(){
     gridShader.load(GL_FRAGMENT_SHADER, "src/shaders/gridFrag.glsl");
     gridShader.link();
 
+    // vector<float> quadVerts = {
+    //     1.f,  1.f, 1.f,
+    //     1.f, -1.f, 1.f,
+    //     -1.f, -1.f, 1.f,
+    //     -1.f,  1.f, 1.f,
+    //     1.f,  1.f, -1.f,
+    //     1.f, -1.f, -1.f,
+    //     -1.f, -1.f, -1.f,
+    //     -1.f,  1.f, -1.f
+    // };
+    // vector<unsigned int> quadIndices = {
+    //     0, 1, 2,
+    //     0, 2, 3,
+    //     5, 4, 7,
+    //     5, 7, 6,
+    //     4, 0, 3,
+    //     4, 3, 7,
+    //     1, 5, 6,
+    //     1, 6, 2,
+    //     3, 2, 6,
+    //     3, 6, 7,
+    //     4, 5, 1,
+    //     4, 1, 0
+    // };
     vector<float> quadVerts = {
-        1.f,  1.f, 1.f,
-        1.f, -1.f, 1.f,
-        -1.f, -1.f, 1.f,
-        -1.f,  1.f, 1.f,
-        1.f,  1.f, -1.f,
-        1.f, -1.f, -1.f,
-        -1.f, -1.f, -1.f,
-        -1.f,  1.f, -1.f
+        1.f,  1.f, 0.f,
+        1.f, -1.f, 0.f,
+        -1.f, -1.f, 0.f,
+        -1.f,  1.f, 0.f,
     };
     vector<unsigned int> quadIndices = {
         0, 1, 2,
-        0, 2, 3,
-        5, 4, 7,
-        5, 7, 6,
-        4, 0, 3,
-        4, 3, 7,
-        1, 5, 6,
-        1, 6, 2,
-        3, 2, 6,
-        3, 6, 7,
-        4, 5, 1,
-        4, 1, 0
+        0, 2, 3
     };
     tie(VBO, VAO, EBO) = ShaderProgram::addData(quadVerts, quadIndices);
 
@@ -117,10 +127,10 @@ void init(){
     glEnableVertexAttribArray(2);
 
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
+    // glEnable(GL_CULL_FACE);
+    // glCullFace(GL_FRONT);
     
-    solverGPU = make_shared<SolverGPU>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, app->height() * 0.5f / solverH, 0.03f);
+    solverGPU = make_shared<SolverGPU>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, app->height() * 0.5f / solverH, 0.05f);
 
     camera = make_shared<Camera>(0.02f, 0.25f);
     camera->resetMousePos(app->mouseX(), app->mouseY());
@@ -190,6 +200,12 @@ void render(){
     glVertexAttribDivisor(2, 1);
     glEnableVertexAttribArray(2);
 
+    glBindBuffer(GL_ARRAY_BUFFER, solverGPU->getVelBuffer());
+
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
+    glVertexAttribDivisor(3, 1);
+    glEnableVertexAttribArray(3);
+
     glUniform1f(ShaderProgram::getVarLoc("particleRadius"), particleRadius);
     glUniformMatrix4fv(ShaderProgram::getVarLoc("uView"), 1, GL_FALSE, &camera->viewMatrix()[0][0]);
     mat4 uProj = perspective(radians(60.0f), (float)app->width() / app->height(), 0.1f, 20000.0f);
@@ -197,9 +213,9 @@ void render(){
 
     glBindVertexArray(VAO);
     
-    glDepthMask(GL_FALSE);
-    glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, numParticle);
-    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, numParticle);
+    //glDepthMask(GL_TRUE);
 }
 
 void updatePosesAndColors(){
@@ -243,6 +259,7 @@ void inputs(){
     if (app->keyPressedOnce(GLFW_KEY_R, frameCount)){
         particleShader.reload();
         gridShader.reload();
+        solverGPU->reload();
         cout << "Shaders reloaded." << endl;
     }
 
@@ -281,6 +298,7 @@ int main(){
     {
         app->startFrame(frameCount);
         recordStats();
+        //solverGPU->setDt(stats->frameTime * 0.001f * 5);
 
         if (!paused){
             if (enableObstacle){

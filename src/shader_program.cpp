@@ -143,6 +143,15 @@ void ShaderProgram::dispatch(GLuint x, GLuint y, GLuint z){
     glDispatchCompute(x, y, z);
 }
 
+void ShaderProgram::indirectBarrier(){
+    glMemoryBarrier(GL_COMMAND_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+}
+
+void ShaderProgram::indirectDispatch(GLuint buffer, int offset){
+    glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, buffer);
+    glDispatchComputeIndirect(offset);
+}
+
 GLuint ShaderProgram::getVarLoc(const string& name){
     if (currentlyUsedProgram == 0){
         cerr << "Warning: trying to get uniform location of " << name << " while no shader program is currently used." << endl;
