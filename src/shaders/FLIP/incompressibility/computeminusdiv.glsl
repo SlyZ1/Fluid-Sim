@@ -53,7 +53,7 @@ void main(){
     d += s3 * velRight - s2 * velLeft;
     d += s5 * velFront - s4 * velBack;
     
-    d -= max(rho[cell] - 2, 0);
+    d -= max(rho[cell] - 8, 0);
 
     minusDiv[cell] = -d;
 }

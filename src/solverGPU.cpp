@@ -457,6 +457,18 @@ void SolverGPU::particlesToGrid(){
     glUniform1i(ShaderProgram::getVarLoc("gridZ"), gridZ);
     glUniform1f(ShaderProgram::getVarLoc("h"), h);
     applyWeightsShader.dispatch((gridX+1 + 7) / 8, (gridY+1 + 7) / 8, (gridZ+1 + 7) / 8);
+
+    glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+
+    glBindBuffer(GL_COPY_READ_BUFFER, velXBuffer);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, oldVelXBuffer);
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, (gridX + 1) * gridY * gridZ * sizeof(float));
+    glBindBuffer(GL_COPY_READ_BUFFER, velYBuffer);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, oldVelYBuffer);
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, gridX * (gridY + 1) * gridZ * sizeof(float));
+    glBindBuffer(GL_COPY_READ_BUFFER, velZBuffer);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, oldVelZBuffer);
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, gridX * gridY * (gridZ + 1) * sizeof(float));
 }
 
 void SolverGPU::surfaceTension(){
@@ -521,22 +533,12 @@ void SolverGPU::surfaceTension(){
     glUniform1i(ShaderProgram::getVarLoc("gridZ"), gridZ);
     glUniform1f(ShaderProgram::getVarLoc("h"), h);
     glUniform1f(ShaderProgram::getVarLoc("dt"), dt);
-    glUniform1f(ShaderProgram::getVarLoc("sigma"), 0.0);
+    glUniform1f(ShaderProgram::getVarLoc("sigma"), 100);
     integrateGridShader.dispatch((gridX + 7) / 8, (gridY + 7) / 8, (gridZ + 7) / 8);
 }
 
 void SolverGPU::solveIncompressibility(int iterations, bool useCGS){
-    glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
-
-    glBindBuffer(GL_COPY_READ_BUFFER, velXBuffer);
-    glBindBuffer(GL_COPY_WRITE_BUFFER, oldVelXBuffer);
-    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, (gridX + 1) * gridY * gridZ * sizeof(float));
-    glBindBuffer(GL_COPY_READ_BUFFER, velYBuffer);
-    glBindBuffer(GL_COPY_WRITE_BUFFER, oldVelYBuffer);
-    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, gridX * (gridY + 1) * gridZ * sizeof(float));
-    glBindBuffer(GL_COPY_READ_BUFFER, velZBuffer);
-    glBindBuffer(GL_COPY_WRITE_BUFFER, oldVelZBuffer);
-    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, gridX * gridY * (gridZ + 1) * sizeof(float));
+    ShaderProgram::SSBOBarrier();
 
     if (useCGS){
 

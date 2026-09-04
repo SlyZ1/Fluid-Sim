@@ -49,7 +49,7 @@ void main(){
         if (validCount > 0){
             vec3 force = sigma * (curv + leftCurv) / validCount * (normal + leftNormal) / validCount;
             int cellX = coordToCell(ivec3(i, j, k), gridX+1, gridY, gridZ);
-            velX[cellX] += force.x * dt;
+            velX[cellX] -= force.x * dt;
         }
     }
     if (j-1 >= 0) {
@@ -66,7 +66,7 @@ void main(){
         if (validCount > 0){
             vec3 force = sigma * (curv + bottomCurv) / validCount * (normal + bottomNormal) / validCount;
             int cellY = coordToCell(ivec3(i, j, k), gridX, gridY+1, gridZ);
-            velY[cellY] += force.y * dt;
+            velY[cellY] -= force.y * dt;
         }
     }
     if (k-1 >= 0) {
@@ -83,7 +83,7 @@ void main(){
         if (validCount > 0){
             vec3 force = sigma * (curv + backCurv) / validCount * (normal + backNormal) / validCount;
             int cellZ = coordToCell(ivec3(i, j, k), gridX, gridY, gridZ+1);
-            velZ[cellZ] += force.z * dt;
+            velZ[cellZ] -= force.z * dt;
         }
     }
 }

@@ -32,8 +32,8 @@ FPSCounter fpsCounter = {};
 
 vector<vec3> poses = { vec3(0,0,0), vec3(0.5f, 0.f, 0.f) };
 vector<vec4> colors = { vec4(1.f), vec4(1.f) };
-float particleRadius = 4.f;
-int numParticle = 150000;
+float particleRadius = 2.f;
+int numParticle = 600000;
 int iterations = 1;
 
 vec2 previousObstaclePos = vec2(0.f);
@@ -104,7 +104,7 @@ void init(){
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
 
-    float solverH = 2 * 1 * particleRadius;
+    float solverH = 2 * 2 * particleRadius;
     solver = make_shared<Solver>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, 0.03f);
     //poses = solver->getPos();
     //colors = vector<vec4>((int)poses.size(), vec4(1.0f));
@@ -130,7 +130,7 @@ void init(){
     // glEnable(GL_CULL_FACE);
     // glCullFace(GL_FRONT);
     
-    solverGPU = make_shared<SolverGPU>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, app->height() * 0.5 / solverH, 0.005f);
+    solverGPU = make_shared<SolverGPU>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, app->height() * 0.5 / solverH, 0.03f);
 
     camera = make_shared<Camera>(0.02f, 0.25f);
     camera->resetMousePos(app->mouseX(), app->mouseY());
