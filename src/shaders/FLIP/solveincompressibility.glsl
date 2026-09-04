@@ -56,7 +56,7 @@ void main(){
     rho += s0 * rY[bottom] + s1 * rY[top];
     rho += s4 * rZ[back] + s5 * rZ[front];
     rho /= s;
-    d -= max(rho - 2, 0); // drift compensation
+    d -= max(rho - 8, 0); // drift compensation
     
     velY[bottom] = velBottom + d * s0 / s;  
     velY[top] = velTop - d * s1 / s;

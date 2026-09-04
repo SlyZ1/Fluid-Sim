@@ -143,6 +143,10 @@ void ShaderProgram::dispatch(GLuint x, GLuint y, GLuint z){
     glDispatchCompute(x, y, z);
 }
 
+void ShaderProgram::SSBOBarrier(){
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+}
+
 void ShaderProgram::indirectBarrier(){
     glMemoryBarrier(GL_COMMAND_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 }

@@ -9,6 +9,9 @@ class MatOps {
 private:
     GLuint alphaBuffer;
     GLuint partialDotBuffer;
+    int partialDotCapacity = 0;
+    
+    void ensurePartialCapacity(int N);
 public:
     MatOps();
     ShaderProgram mulProg = {};

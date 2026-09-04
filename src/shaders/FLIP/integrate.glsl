@@ -11,7 +11,8 @@ void main(){
     uint i = gl_GlobalInvocationID.x;
     if (i >= partN) return;
 
-    vec3 newVel = partVel[i].xyz + vec3(0, -9.81, 0) * dt;
+    vec3 acc = vec3(0,-9.81,0);
+    vec3 newVel = partVel[i].xyz + acc * dt;
     partVel[i].xyz = newVel;
     partPos[i].xyz += newVel * dt;
 }

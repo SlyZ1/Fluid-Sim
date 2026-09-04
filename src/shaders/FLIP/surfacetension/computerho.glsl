@@ -1,12 +1,11 @@
 #version 430 core
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
-layout(std430, binding = 0) readonly buffer VelXBuffer { float[] velX; };
-layout(std430, binding = 1) readonly buffer VelYBuffer { float[] velY; };
-layout(std430, binding = 2) readonly buffer VelZBuffer { float[] velZ; };
-layout(std430, binding = 3) readonly buffer RhoBuffer { float[] rho; };
-layout(std430, binding = 4) readonly buffer IsAirBuffer { uint[] isAir; };
-layout(std430, binding = 5) writeonly buffer MinusDivBuffer { float[] minusDiv; };
+layout(std430, binding = 0) readonly buffer RXBuffer { float[] rX; };
+layout(std430, binding = 1) readonly buffer RYBuffer { float[] rY; };
+layout(std430, binding = 2) readonly buffer RZBuffer { float[] rZ; };
+layout(std430, binding = 3) readonly buffer IsAirBuffer { uint[] isAir; };
+layout(std430, binding = 4) writeonly buffer RhoBuffer { float[] rho; };
 
 uniform int gridX;
 uniform int gridY;
@@ -20,10 +19,7 @@ void main(){
     int j = int(gl_GlobalInvocationID.y);
     int k = int(gl_GlobalInvocationID.z);
     if (i >= gridX || j >= gridY || k >= gridZ) return;
-        
-    int cell = coordToCell(ivec3(i,j,k), gridX, gridY, gridZ);
-    if (isAir[cell] == 1u) 
-        { minusDiv[cell] = 0.0; return; }
+    int cell = coordToCell(ivec3(i, j, k), gridX, gridY, gridZ);
 
     float s0 = float(j-1 >= 0);
     float s1 = float(j+1 < gridY);
@@ -32,8 +28,6 @@ void main(){
     float s4 = float(k-1 >= 0);
     float s5 = float(k+1 < gridZ);
     float s = s0 + s1 + s2 + s3 + s4 + s5;
-    if (s <= 0) 
-        { minusDiv[cell] = 0.0; return; }
 
     int bottom = coordToCell(ivec3(i, j, k), gridX, gridY+1, gridZ);
     int top = coordToCell(ivec3(i, j+1, k), gridX, gridY+1, gridZ);
@@ -42,18 +36,10 @@ void main(){
     int back = coordToCell(ivec3(i, j, k), gridX, gridY, gridZ+1);
     int front = coordToCell(ivec3(i, j, k+1), gridX, gridY, gridZ+1);
     
-    float velBottom = velY[bottom];
-    float velTop = velY[top];
-    float velLeft = velX[left];
-    float velRight = velX[right];
-    float velBack = velZ[back];
-    float velFront = velZ[front];
-
-    float d = s1 * velTop - s0 * velBottom;
-    d += s3 * velRight - s2 * velLeft;
-    d += s5 * velFront - s4 * velBack;
+    float r = s2 * rX[left] + s3 * rX[right];
+    r += s0 * rY[bottom] + s1 * rY[top];
+    r += s4 * rZ[back] + s5 * rZ[front];
+    if (s > 0) r /= s;
     
-    d -= max(rho[cell] - 2, 0);
-
-    minusDiv[cell] = -d;
+    rho[cell] = r;
 }

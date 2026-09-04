@@ -37,6 +37,16 @@ MatOps::MatOps(){
     glGenBuffers(1, &partialDotBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, partialDotBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 1024 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    partialDotCapacity = 1024;
+}
+
+void MatOps::ensurePartialCapacity(int N){
+    int needed = (N + 127) / 128;
+    if (needed <= partialDotCapacity) return;
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, partialDotBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, needed * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    partialDotCapacity = needed;
 }
 
 void MatOps::multiply(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, bool dispatch){
@@ -53,6 +63,7 @@ void MatOps::multiply(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N
 }
 
 void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, int index){
+    ensurePartialCapacity(N);
     dot1Prog.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferB);
@@ -77,6 +88,7 @@ void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, int
 }
 
 void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, glm::ivec3 indicies){
+    ensurePartialCapacity(N);
     dot1Prog.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferB);
@@ -102,6 +114,7 @@ void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, glm
 
 
 void MatOps::dotIndirect(GLuint bufferA, GLuint bufferB, GLuint bufferResult, GLuint indirectBuffer, int offset1, int offset2, int N, int index){
+    ensurePartialCapacity(N);
     dot1Prog.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferB);

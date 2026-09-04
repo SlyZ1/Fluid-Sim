@@ -55,9 +55,10 @@ void main(){
     //     s5 = float(isAir[c] == 0u);
     // }
     float s = s0 + s1 + s2 + s3 + s4 + s5;
-    if (s <= 0.0) { Ax[cell] = 0.0; return; }
-
+    const float eps = 1e-1;
     float xCell = x[cell];
+    if (s <= 0.0) { Ax[cell] = eps * xCell; return; }
+
     float xBottom = (s0 > 0.0) ? x[coordToCell(ivec3(i,j-1,k), gridX, gridY, gridZ)] : 0.0;
     float xTop    = (s1 > 0.0) ? x[coordToCell(ivec3(i,j+1,k), gridX, gridY, gridZ)] : 0.0;
     float xLeft   = (s2 > 0.0) ? x[coordToCell(ivec3(i-1,j,k), gridX, gridY, gridZ)] : 0.0;
@@ -65,6 +66,5 @@ void main(){
     float xBack   = (s4 > 0.0) ? x[coordToCell(ivec3(i,j,k-1), gridX, gridY, gridZ)] : 0.0;
     float xFront  = (s5 > 0.0) ? x[coordToCell(ivec3(i,j,k+1), gridX, gridY, gridZ)] : 0.0;
 
-    const float eps = 1e-4;
     Ax[cell] = (s + eps) * xCell - (s0*xBottom + s1*xTop + s2*xLeft + s3*xRight + s4*xBack + s5*xFront);
 }

@@ -32,7 +32,7 @@ FPSCounter fpsCounter = {};
 
 vector<vec3> poses = { vec3(0,0,0), vec3(0.5f, 0.f, 0.f) };
 vector<vec4> colors = { vec4(1.f), vec4(1.f) };
-float particleRadius = 3.f;
+float particleRadius = 4.f;
 int numParticle = 150000;
 int iterations = 1;
 
@@ -130,7 +130,7 @@ void init(){
     // glEnable(GL_CULL_FACE);
     // glCullFace(GL_FRONT);
     
-    solverGPU = make_shared<SolverGPU>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, app->height() * 0.5f / solverH, 0.05f);
+    solverGPU = make_shared<SolverGPU>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, app->height() * 0.5 / solverH, 0.005f);
 
     camera = make_shared<Camera>(0.02f, 0.25f);
     camera->resetMousePos(app->mouseX(), app->mouseY());

@@ -37,6 +37,7 @@ class ShaderProgram {
         static void indirectDispatch(GLuint buffer, int offset = 0);
         void destroy();
         static GLuint getVarLoc(const string& name);
+        static void SSBOBarrier();
 
         template<typename T>
         static tuple<GLuint, GLuint, GLuint> 

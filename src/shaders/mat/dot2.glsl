@@ -11,7 +11,11 @@ uniform ivec3 indicies;
 
 void main(){
     uint i = gl_LocalInvocationID.x;
-    partialSum[i] = (i < numPartials) ? partials[i] : 0.0;
+
+    float sum = 0.0;
+    for (uint p = i; p < uint(numPartials); p += gl_WorkGroupSize.x)
+        sum += partials[p];
+    partialSum[i] = sum;
 
     barrier();
     for(uint stride = gl_WorkGroupSize.x / 2; stride > 0; stride >>= 1) {

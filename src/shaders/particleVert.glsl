@@ -16,10 +16,12 @@ void main()
     vec4 worldPos = vec4(cPos, 1.0);
     worldPos.z -= 1000;
     vec4 viewPos = uView * worldPos;
-    viewPos.xy += vPos.xy * particleRadius;
-    gl_Position = uProj * viewPos;
 
     float t = clamp(length(cVel) / 50.0, 0.0, 1.0);
+
+    float radius = mix(particleRadius, particleRadius / 2, t);
+    viewPos.xy += vPos.xy * radius;
+    gl_Position = uProj * viewPos;
 
     vec4 blue = vec4(0.02, 0.04, 0.6, 1.0);
     vec4 blue2 = vec4(0.07, 0.55, 0.87, 0.0);

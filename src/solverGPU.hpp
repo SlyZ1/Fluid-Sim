@@ -15,6 +15,7 @@ class SolverGPU {
 private:
     CGS cgs = {};
 
+    // FLIP Buffers
     GLuint partPosBuffer = 0;
     GLuint partVelBuffer = 0;
     GLuint velXBuffer = 0;
@@ -28,36 +29,57 @@ private:
     GLuint rZBuffer = 0;
     GLuint isAirBuffer = 0;
 
+    // Density
+    GLuint rhoBuffer;
+    GLuint smoothRhoBuffer;
+    GLuint gradRhoBuffer;
+    GLuint curvatureBuffer;
+
+    // Pressure - Incompression
     GLuint minusDivBuffer = 0;
     GLuint pressureBuffer = 0;
 
+    // Particle Sort
     GLuint cellOfBuffer = 0;
     GLuint blockSumBuffer = 0;
     GLuint cellParticleIdsBuffer = 0;
     GLuint firstCellParticleBuffer = 0;
     GLuint firstCellParticleBuffer2 = 0;
 
+    // Push appart
     GLuint correctionBuffer;
     GLuint numCorrectionBuffer;
 
     ShaderProgram integrateShader = {};
+    ShaderProgram integrateGridShader = {};
 
     ShaderProgram collisionShader = {};
 
+    // Particle Sort
     ShaderProgram resetUintBuffersShader = {};
     ShaderProgram partCountShader = {};
     ShaderProgram localSumShader = {};
     ShaderProgram smallSumShader = {};
     ShaderProgram globalSumShader = {};
     ShaderProgram cellParticleIdShader = {};
+
+    // Push appart
     ShaderProgram resetBuffersShader = {};
     ShaderProgram getCorrectionsShader = {};
     ShaderProgram applyCorrectionsShader = {};
 
+    // P2G
     ShaderProgram resetFloatBufferShader = {};
     ShaderProgram p2gShader = {};
     ShaderProgram applyWeightsShader = {};
+
+    // Density
+    ShaderProgram computeRhoShader = {};
+    ShaderProgram smoothDataShader = {};
+    ShaderProgram computeGradShader = {};
+    ShaderProgram computeCurvatureShader = {};
     
+    // Pressure - Incompression
     ShaderProgram solveIncompressibilityShader = {};
     ShaderProgram sparseMatVecShader = {};
     ShaderProgram computeMinusDivShader = {};
@@ -70,6 +92,7 @@ private:
     GPUTimer pushAppartTimer = {};
     GPUTimer collisionTimer = {};
     GPUTimer p2gTimer = {};
+    GPUTimer surfaceTensionTimer = {};
     GPUTimer incompressibilityTimer = {};
     GPUTimer g2pTimer = {};
     GPUTimer scanTimer = {};
@@ -102,6 +125,7 @@ private:
     void pushAppartParticles(int iterations);
     void particleCollisions();
     void particlesToGrid();
+    void surfaceTension();
     void solveIncompressibility(int iterations, bool useCGS = true);
     void gridToParticles();
 
