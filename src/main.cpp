@@ -32,8 +32,8 @@ FPSCounter fpsCounter = {};
 
 vector<vec3> poses = { vec3(0,0,0), vec3(0.5f, 0.f, 0.f) };
 vector<vec4> colors = { vec4(1.f), vec4(1.f) };
-float particleRadius = 2.f;
-int numParticle = 600000;
+float particleRadius = 1.5f;
+int numParticle = 11e5;
 int iterations = 1;
 
 vec2 previousObstaclePos = vec2(0.f);
@@ -51,7 +51,7 @@ extern "C" {
 void init(){
     app = make_shared<App>();
     app->init(1280, 720, "Default GLSL");
-    app->setClearColor(0,0,0,1);
+    app->setClearColor(0, 0, 0, 1.0f);
     app->toggleCursor(!freeView);
 
     particleShader.create();
@@ -130,7 +130,15 @@ void init(){
     // glEnable(GL_CULL_FACE);
     // glCullFace(GL_FRONT);
     
-    solverGPU = make_shared<SolverGPU>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, app->height() * 0.5 / solverH, 0.03f);
+    solverGPU = make_shared<SolverGPU>(
+        numParticle, 
+        particleRadius, 
+        solverH, 
+        app->width() / solverH, 
+        app->height() / solverH, 
+        app->height() * 0.5 / solverH, 
+        0.05f
+    );
 
     camera = make_shared<Camera>(0.02f, 0.25f);
     camera->resetMousePos(app->mouseX(), app->mouseY());

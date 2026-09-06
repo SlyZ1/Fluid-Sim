@@ -1,11 +1,10 @@
 #version 430 core
-layout(local_size_x = 64) in;
+layout(local_size_x = 256) in;
 
-layout(std430, binding = 0) writeonly buffer CorrectionsBuffer { vec4[] corrections; };
-layout(std430, binding = 1) writeonly buffer NumCorrectionsBuffer { int[] numCorrections; };
-layout(std430, binding = 2) readonly buffer FirstCellParticleBuffer { uint[] firstCellParticle; };
-layout(std430, binding = 3) readonly buffer CellParticleIdsBuffer { uint[] cellParticleIds; };
-layout(std430, binding = 4) readonly buffer PartPosBuffer { vec4[] partPos; };
+layout(std430, binding = 0) readonly buffer FirstCellParticleBuffer { uint[] firstCellParticle; };
+layout(std430, binding = 1) readonly buffer CellParticleIdsBuffer { uint[] cellParticleIds; };
+layout(std430, binding = 2) readonly buffer OldPartPosBuffer { vec4[] oldPartPos; };
+layout(std430, binding = 3) buffer PartPosBuffer { vec4[] partPos; };
 
 uniform int partN;
 uniform int gridX;
@@ -36,15 +35,19 @@ void main(){
     int i = int(gl_GlobalInvocationID.x);
     if (i >= partN) return;
 
-    vec3 currentPos = partPos[i].xyz;
+    vec3 currentPos = oldPartPos[i].xyz;
     ivec3 coord = posToCoord(currentPos, gridX, gridY, gridZ);
+    vec3 cellCenter = coordToPos(coord, gridX, gridY, gridZ);
+    
+    bvec3 posCond = lessThan(currentPos, cellCenter);
+    vec3 posCondInt = mix(vec3(0), vec3(1), posCond);
 
     vec3 currentCorrections = vec3(0.0);
     int currentNumCorrections = 0;
 
-    for(int x = -1; x <= 1; x++) {
-        for(int y = -1; y <= 1; y++) { 
-            for(int z = -1; z <= 1; z++)
+    for(int x = -int(posCondInt.x); x <= 1 - int(posCondInt.x); x++) {
+        for(int y = -int(posCondInt.y); y <= 1 - int(posCondInt.y); y++) { 
+            for(int z = -int(posCondInt.z); z <= 1 - int(posCondInt.z); z++)
             {
                 int cx = coord.x + x;
                 int cy = coord.y + y;
@@ -60,7 +63,7 @@ void main(){
                     int j = int(cellParticleIds[k]);
                     if (j == i) continue;
 
-                    vec3 diff = currentPos - partPos[j].xyz;
+                    vec3 diff = currentPos - oldPartPos[j].xyz;
                     float dist2 = dot(diff, diff);
                     if (dist2 < minDist * minDist)
                     {
@@ -81,6 +84,6 @@ void main(){
         } 
     }
 
-    corrections[i].xyz = currentCorrections;
-    numCorrections[i] = currentNumCorrections;
+    if (currentNumCorrections > 0) 
+        partPos[i].xyz += currentCorrections / currentNumCorrections;
 }

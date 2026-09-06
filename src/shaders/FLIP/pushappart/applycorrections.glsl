@@ -1,5 +1,5 @@
 #version 430 core
-layout(local_size_x = 256) in;
+layout(local_size_x = 512) in;
 
 layout(std430, binding = 0) readonly buffer CorrectionsBuffer { vec4[] corrections; };
 layout(std430, binding = 1) readonly buffer NumCorrectionsBuffer { int[] numCorrections; };

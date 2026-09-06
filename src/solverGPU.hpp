@@ -17,6 +17,7 @@ private:
 
     // FLIP Buffers
     GLuint partPosBuffer = 0;
+    GLuint oldPartPosBuffer = 0;
     GLuint partVelBuffer = 0;
     GLuint velXBuffer = 0;
     GLuint velYBuffer = 0;
@@ -30,10 +31,10 @@ private:
     GLuint isAirBuffer = 0;
 
     // Density
-    GLuint rhoBuffer;
-    GLuint smoothRhoBuffer;
-    GLuint gradRhoBuffer;
-    GLuint curvatureBuffer;
+    GLuint rhoBuffer = 0;
+    GLuint smoothRhoBuffer = 0;
+    GLuint gradRhoBuffer = 0;
+    GLuint curvatureBuffer = 0;
 
     // Pressure - Incompression
     GLuint minusDivBuffer = 0;
@@ -45,10 +46,6 @@ private:
     GLuint cellParticleIdsBuffer = 0;
     GLuint firstCellParticleBuffer = 0;
     GLuint firstCellParticleBuffer2 = 0;
-
-    // Push appart
-    GLuint correctionBuffer;
-    GLuint numCorrectionBuffer;
 
     ShaderProgram integrateShader = {};
     ShaderProgram integrateGridShader = {};
