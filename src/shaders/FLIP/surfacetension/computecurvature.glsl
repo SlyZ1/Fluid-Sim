@@ -42,6 +42,6 @@ void main(){
     vec3 normalFront = safeNormal(grad[front].xyz);
 
     vec3 curvatureVal = vec3(normalRight.x - normalLeft.x, normalTop.y - normalBottom.y, normalFront.z - normalBack.z);
-    curvatureVal /= vec3(h + hX, h + hY, h + hZ);
-    curvature[cell] = curvatureVal.x + curvatureVal.y + curvatureVal.z; 
+    curvatureVal /= vec3(h * (1 + hX), h * (1 + hY), h * (1 + hZ));
+    curvature[cell] = clamp(curvatureVal.x + curvatureVal.y + curvatureVal.z, -1.0 / h, 1.0 / h);
 }

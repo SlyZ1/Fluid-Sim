@@ -16,7 +16,7 @@ void SolverGPU::createBuffers(){
         int rest = (i - x) / a;
         int y = rest % a;
         int z = (rest - y) / a;
-        partPos[i] = (vec4(x, y, z, 1) + 0.f * vec4(1, 0, 1, 0) * 0.5f * (float)((int)y % 2) - vec4(a * 0.5f)) * 2.f * radius * 1.f;
+        partPos[i] = (vec4(x, y, z, 1) + 1.f * vec4(1, 0, 1, 0) * 0.5f * (float)((int)y % 2) - vec4(a * 0.5f)) * 2.f * radius * 1.f;
     }
 
     glDeleteBuffers(1, &rXBuffer); glDeleteBuffers(1, &rYBuffer); glDeleteBuffers(1, &rZBuffer);
@@ -519,9 +519,8 @@ void SolverGPU::surfaceTension(){
     ShaderProgram::SSBOBarrier();
 
     integrateGridShader.use();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gradRhoBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, curvatureBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, isAirBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, smoothRhoBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, velXBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, velYBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, velZBuffer);
@@ -530,7 +529,7 @@ void SolverGPU::surfaceTension(){
     glUniform1i(ShaderProgram::getVarLoc("gridZ"), gridZ);
     glUniform1f(ShaderProgram::getVarLoc("h"), h);
     glUniform1f(ShaderProgram::getVarLoc("dt"), dt);
-    glUniform1f(ShaderProgram::getVarLoc("sigma"), 0);
+    glUniform1f(ShaderProgram::getVarLoc("sigma"), 500);
     integrateGridShader.dispatch((gridX + 7) / 8, (gridY + 7) / 8, (gridZ + 7) / 8);
 }
 

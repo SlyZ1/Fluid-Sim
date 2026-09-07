@@ -32,7 +32,7 @@ vec4 uvToViewPos(vec2 uv) {
     return vec4(rayDir * (depth / (-rayDir.z)), depth);
 }
 
-vec3 getSkyColor(vec3 dir){
+vec3 getSkyColor(vec3 dir, vec3 sunDir){
     vec3 skyTop = vec3(0.1, 0.35, 0.85);
     vec3 skyHorizon = vec3(0.65, 0.8, 0.95);
     vec3 groundColor = vec3(0.3, 0.3, 0.28);
@@ -43,7 +43,7 @@ vec3 getSkyColor(vec3 dir){
     vec3 skyColor = mix(skyTop, skyHorizon, horizonFade);
     skyColor = mix(skyColor, groundColor, step(dir.y, -.5));
 
-    float sunDot = max(dot(dir, normalize(vec3(1.5,0.6,-1))), 0.0);
+    float sunDot = max(dot(dir, sunDir), 0.0);
     
     float sunDisc = pow(sunDot, 2000.0);      // disque net, exposant très élevé pour un petit disque serré
     float sunGlow = pow(sunDot, 8.0) * 0.1;    // halo large et doux autour
@@ -58,9 +58,10 @@ void main()
 {
     vec2 uv = 0.5 * (vClipPos.xy + 1);
     vec3 dir = getRayDir(uv);
+    const vec3 sunDir = normalize(vec3(1.5,0.6,-1));
 
-    float cumulativeDepth = texture(cumulativeDepthTex, uv).x / 100;
-    vec3 backgroundColor = getSkyColor(dir);
+    float cumulativeDepth = texture(cumulativeDepthTex, uv).x * 10;
+    vec3 backgroundColor = getSkyColor(dir, sunDir);
     if (cumulativeDepth <= 0) {
         FragColor = vec4(backgroundColor, 1);
         return;
@@ -80,10 +81,16 @@ void main()
     // FragColor = vec4(normal, 1.0);
     // return;
 
+    const float ambientLight = 0.5;
+    float shading = dot(normal, sunDir) * 0.5 + 0.5;
+    shading = shading * (1 - ambientLight) + ambientLight;
+
     float f0 = (1 - 1.33) / (1 + 1.33);
     f0 *= f0;
     float fresnel = f0 + (1 - f0) * pow(1 - dot(viewDir, normal), 5);
-    vec3 shading = (1 - fresnel) * absorptionColor + fresnel * getSkyColor(reflect(-viewDir, normal));
+    vec4 color = vec4(0.05, 0.65, 1.0, 1.0);
+    vec3 fluidShading = (1 - fresnel) * color.xyz * shading;
+    fluidShading += fresnel * getSkyColor(reflect(-viewDir, normal), sunDir);
 
-    FragColor = vec4(shading, 1);
+    FragColor = vec4(fluidShading, 1);
 }

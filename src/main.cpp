@@ -266,7 +266,8 @@ void render(){
     
     glUniform2f(ShaderProgram::getVarLoc("viewport"), app->width(), app->height());
 
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uProj"), 1, GL_FALSE, &uProj[0][0]);
+    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvView"), 1, GL_FALSE, &inverse(camera->viewMatrix())[0][0]);
+    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvProj"), 1, GL_FALSE, &inverse(uProj)[0][0]);
 
     glBindFramebuffer(GL_FRAMEBUFFER, blurredFBO);
     glDisable(GL_BLEND);
@@ -344,8 +345,11 @@ void inputs(){
         normalShader.reload();
         blurShader.reload();
         waterShader.reload();
-        //solverGPU->reload();
         cout << "Shaders reloaded." << endl;
+    }
+    
+    if (app->keyPressedOnce(GLFW_KEY_ENTER, frameCount)){
+        solverGPU->reload();
     }
 
     if (app->keyPressedOnce(GLFW_KEY_P, frameCount)){

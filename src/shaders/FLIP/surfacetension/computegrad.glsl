@@ -30,6 +30,6 @@ void main(){
     float hZ = float(k-1 >= 0 && k+1 < gridZ);
 
     vec3 gradVal = vec3(data[right] - data[left], data[top] - data[bottom], data[front] - data[back]);
-    gradVal /= vec3(h + hX, h + hY, h + hZ);
+    gradVal /= vec3(h * (1 + hX), h * (1 + hY), h * (1 + hZ));
     grad[cell].xyz = gradVal; 
 }
