@@ -45,7 +45,7 @@ void Camera::rotate(float mouseX, float mouseY){
 bool Camera::getIsMoving(int frame){
     bool result = m_isMoving || m_isLooking;
     if (result) m_lastMovingFrame = frame;
-    return frame - m_lastMovingFrame < 10;
+    return frame - m_lastMovingFrame < 10; 
 }
 
 void Camera::updateGPU(){

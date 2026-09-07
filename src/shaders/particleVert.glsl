@@ -5,6 +5,8 @@ layout (location = 2) in vec4 color;
 layout (location = 3) in vec3 cVel;
 out vec3 vClipPos;
 out vec4 vColor;
+out float depth;
+out float radius;
 
 uniform float particleRadius;
 uniform mat4 uView;
@@ -14,14 +16,17 @@ void main()
 {
     vClipPos = vPos;
     vec4 worldPos = vec4(cPos, 1.0);
-    worldPos.z -= 1000;
+    //worldPos.z -= 1000;
     vec4 viewPos = uView * worldPos;
 
     float t = clamp(length(cVel) / 50.0, 0.0, 1.0);
 
-    float radius = mix(particleRadius, particleRadius / 2, t);
-    viewPos.xy += vPos.xy * radius;
+    float customRadius = mix(particleRadius, particleRadius / 4, t) * 4;
+    customRadius = particleRadius / 1.5 * 4;
+    radius = customRadius;
+    viewPos.xy += vPos.xy * customRadius;
     gl_Position = uProj * viewPos;
+    depth = -viewPos.z;
 
     vec4 blue = vec4(0.02, 0.04, 0.6, 1.0);
     vec4 blue2 = vec4(0.07, 0.55, 0.87, 0.0);

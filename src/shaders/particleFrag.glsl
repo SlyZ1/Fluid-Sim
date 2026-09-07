@@ -2,15 +2,23 @@
 out vec4 FragColor;
 in vec3 vClipPos;
 in vec4 vColor;
+in float depth;
+in float radius;
+
+uniform mat4 uProj;
 
 void main()
 {
-    float dist = length(vClipPos.xy);
-    if (dist > 1.0)
+    float dist2 = dot(vClipPos.xy, vClipPos.xy);
+    if (dist2 > 1)
         discard;
-    float aa = fwidth(dist);
-    float alpha = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, dist);
+
+    float z = sqrt(1.0 - dist2);
+    float sphereDepth = depth - z * radius;
     
-    FragColor = vec4(0.07, 0.55, 0.87, 0.1);
-    FragColor = vec4(vColor.xyz, 0.9 * alpha);
+    vec4 clipZ = uProj * vec4(0.0, 0.0, -sphereDepth, 1.0);
+    float ndcDepth = clipZ.z / clipZ.w;
+    gl_FragDepth = ndcDepth * 0.5 + 0.5;
+
+    FragColor = vec4(vec3(sphereDepth), 1);
 }

@@ -15,12 +15,28 @@
 using namespace std;
 
 int frameCount = 0;
-GLuint VBO, VAO, EBO;
-GLuint gridVBO;
-GLuint posesVBO;
-GLuint colorsVBO;
-ShaderProgram particleShader;
-ShaderProgram gridShader;
+GLuint VBO, VAO, EBO = 0;
+GLuint gridVBO = 0;
+GLuint posesVBO = 0;
+GLuint colorsVBO = 0;
+GLuint depthFBO = 0;
+
+GLuint cumulativeDepthFBO = 0;
+GLuint normalFBO = 0;
+GLuint blurredFBO = 0;
+
+GLuint depthTex = 0;
+GLuint depthColorTex = 0;
+GLuint cumulativeDepthTex = 0;
+GLuint normalTex = 0;
+GLuint blurredTex = 0;
+
+ShaderProgram particleShader = {};
+ShaderProgram cumulativeParticleShader = {};
+ShaderProgram blurShader = {};
+ShaderProgram normalShader = {};
+ShaderProgram waterShader = {};
+ShaderProgram gridShader = {};
 shared_ptr<Camera> camera;
 shared_ptr<App> app;
 shared_ptr<Stats> stats;
@@ -33,7 +49,7 @@ FPSCounter fpsCounter = {};
 vector<vec3> poses = { vec3(0,0,0), vec3(0.5f, 0.f, 0.f) };
 vector<vec4> colors = { vec4(1.f), vec4(1.f) };
 float particleRadius = 1.5f;
-int numParticle = 11e5;
+int numParticle = (int)6e5;
 int iterations = 1;
 
 vec2 previousObstaclePos = vec2(0.f);
@@ -59,35 +75,31 @@ void init(){
     particleShader.load(GL_FRAGMENT_SHADER, "src/shaders/particleFrag.glsl");
     particleShader.link();
 
+    cumulativeParticleShader.create();
+    cumulativeParticleShader.load(GL_VERTEX_SHADER, "src/shaders/particleVert.glsl");
+    cumulativeParticleShader.load(GL_FRAGMENT_SHADER, "src/shaders/particleFragCumulative.glsl");
+    cumulativeParticleShader.link();
+
     gridShader.create();
     gridShader.load(GL_VERTEX_SHADER, "src/shaders/gridVert.glsl");
     gridShader.load(GL_FRAGMENT_SHADER, "src/shaders/gridFrag.glsl");
     gridShader.link();
 
-    // vector<float> quadVerts = {
-    //     1.f,  1.f, 1.f,
-    //     1.f, -1.f, 1.f,
-    //     -1.f, -1.f, 1.f,
-    //     -1.f,  1.f, 1.f,
-    //     1.f,  1.f, -1.f,
-    //     1.f, -1.f, -1.f,
-    //     -1.f, -1.f, -1.f,
-    //     -1.f,  1.f, -1.f
-    // };
-    // vector<unsigned int> quadIndices = {
-    //     0, 1, 2,
-    //     0, 2, 3,
-    //     5, 4, 7,
-    //     5, 7, 6,
-    //     4, 0, 3,
-    //     4, 3, 7,
-    //     1, 5, 6,
-    //     1, 6, 2,
-    //     3, 2, 6,
-    //     3, 6, 7,
-    //     4, 5, 1,
-    //     4, 1, 0
-    // };
+    blurShader.create();
+    blurShader.load(GL_VERTEX_SHADER, "src/shaders/blurVert.glsl");
+    blurShader.load(GL_FRAGMENT_SHADER, "src/shaders/blurFrag.glsl");
+    blurShader.link();
+
+    normalShader.create();
+    normalShader.load(GL_VERTEX_SHADER, "src/shaders/normalVert.glsl");
+    normalShader.load(GL_FRAGMENT_SHADER, "src/shaders/normalFrag.glsl");
+    normalShader.link();
+
+    waterShader.create();
+    waterShader.load(GL_VERTEX_SHADER, "src/shaders/waterVert.glsl");
+    waterShader.load(GL_FRAGMENT_SHADER, "src/shaders/waterFrag.glsl");
+    waterShader.link();
+
     vector<float> quadVerts = {
         1.f,  1.f, 0.f,
         1.f, -1.f, 0.f,
@@ -104,37 +116,56 @@ void init(){
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
 
+    glGenTextures(1, &depthTex);
+    glBindTexture(GL_TEXTURE_2D, depthTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, app->width(), app->height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glGenTextures(1, &depthColorTex);
+    glBindTexture(GL_TEXTURE_2D, depthColorTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, app->width(), app->height(), 0, GL_RGBA, GL_FLOAT, nullptr); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glGenTextures(1, &cumulativeDepthTex);
+    glBindTexture(GL_TEXTURE_2D, cumulativeDepthTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, app->width(), app->height(), 0, GL_RGBA, GL_FLOAT, nullptr); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glGenTextures(1, &normalTex);
+    glBindTexture(GL_TEXTURE_2D, normalTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, app->width(), app->height(), 0, GL_RGBA, GL_FLOAT, nullptr); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenTextures(1, &blurredTex);
+    glBindTexture(GL_TEXTURE_2D, blurredTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, app->width(), app->height(), 0, GL_RGBA, GL_FLOAT, nullptr); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glGenFramebuffers(1, &depthFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTex, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, depthColorTex, 0);
+    glGenFramebuffers(1, &cumulativeDepthFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, cumulativeDepthFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cumulativeDepthTex, 0);
+    glGenFramebuffers(1, &normalFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, normalFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, normalTex, 0);
+    glGenFramebuffers(1, &blurredFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, blurredFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, blurredTex, 0);
+
     float solverH = 2 * 2 * particleRadius;
     solver = make_shared<Solver>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, 0.03f);
-    //poses = solver->getPos();
-    //colors = vector<vec4>((int)poses.size(), vec4(1.0f));
-
-    glGenBuffers(1, &gridVBO);
-    glGenBuffers(1, &posesVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, posesVBO);
-    glBufferData(GL_ARRAY_BUFFER, poses.size() * sizeof(vec3), poses.data(), GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
-    glVertexAttribDivisor(1, 1);
-    glEnableVertexAttribArray(1);
-    
-    glGenBuffers(1, &colorsVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, colorsVBO);
-    glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(vec4), colors.data(), GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
-    glVertexAttribDivisor(2, 1);
-    glEnableVertexAttribArray(2);
 
     glEnable(GL_DEPTH_TEST);
-    // glEnable(GL_CULL_FACE);
-    // glCullFace(GL_FRONT);
     
     solverGPU = make_shared<SolverGPU>(
         numParticle, 
         particleRadius, 
         solverH, 
-        app->width() / solverH, 
+        app->height() / solverH, 
         app->height() / solverH, 
         app->height() * 0.5 / solverH, 
         0.05f
@@ -160,40 +191,9 @@ void recordStats(){
 }
 
 void render(){
-    // gridShader.use();
-
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    // glEnableVertexAttribArray(0);
-
-    // vector<vec4> grid = solver->getGrid(1.f);
-    // glBindBuffer(GL_ARRAY_BUFFER, gridVBO);
-    // glBufferData(GL_ARRAY_BUFFER, grid.size() * sizeof(vec4), grid.data(), GL_DYNAMIC_DRAW);
-
-    // glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
-    // glVertexAttribDivisor(1, 1);
-    // glEnableVertexAttribArray(1);
-
-    // vector<vec4> gridColor = vector((int)grid.size(), vec4(0.2f, 0.2f, 0.2f, 1.f));
-    // glBindBuffer(GL_ARRAY_BUFFER, colorsVBO);
-    // glBufferData(GL_ARRAY_BUFFER, gridColor.size() * sizeof(vec4), gridColor.data(), GL_DYNAMIC_DRAW);
-
-    // glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
-    // glVertexAttribDivisor(2, 1);
-    // glEnableVertexAttribArray(2);
-    
-    // glUniform2f(ShaderProgram::getVarLoc("viewport"), (float)app->width(), (float)app->height());
-
-    // glBindVertexArray(VAO);
-    // glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, (int)grid.size());
-
-    // glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    mat4 uProj = perspective(radians(60.0f), (float)app->width() / app->height(), 0.1f, 20000.0f);
 
     particleShader.use();
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(0);
 
     glBindBuffer(GL_ARRAY_BUFFER, solverGPU->getPosBuffer());
 
@@ -216,14 +216,87 @@ void render(){
 
     glUniform1f(ShaderProgram::getVarLoc("particleRadius"), particleRadius);
     glUniformMatrix4fv(ShaderProgram::getVarLoc("uView"), 1, GL_FALSE, &camera->viewMatrix()[0][0]);
-    mat4 uProj = perspective(radians(60.0f), (float)app->width() / app->height(), 0.1f, 20000.0f);
+    glUniformMatrix4fv(ShaderProgram::getVarLoc("uProj"), 1, GL_FALSE, &uProj[0][0]);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, numParticle);
+
+    cumulativeParticleShader.use();
+
+    glUniform1f(ShaderProgram::getVarLoc("particleRadius"), particleRadius);
+    glUniformMatrix4fv(ShaderProgram::getVarLoc("uView"), 1, GL_FALSE, &camera->viewMatrix()[0][0]);
+    glUniformMatrix4fv(ShaderProgram::getVarLoc("uProj"), 1, GL_FALSE, &uProj[0][0]);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, cumulativeDepthFBO);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+    glDisable(GL_DEPTH_TEST);
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, numParticle);
+
+    normalShader.use();
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, depthColorTex);
+    glUniform1i(ShaderProgram::getVarLoc("depthTex"), 0);
+    
+    glUniform2f(ShaderProgram::getVarLoc("viewport"), app->width(), app->height());
+    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvView"), 1, GL_FALSE, &inverse(camera->viewMatrix())[0][0]);
+    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvProj"), 1, GL_FALSE, &inverse(uProj)[0][0]);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, normalFBO);
+    glDisable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    blurShader.use();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, depthColorTex);
+    glUniform1i(ShaderProgram::getVarLoc("depthColorTex"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, normalTex);
+    glUniform1i(ShaderProgram::getVarLoc("normalTex"), 1);
+    
+    glUniform2f(ShaderProgram::getVarLoc("viewport"), app->width(), app->height());
+
     glUniformMatrix4fv(ShaderProgram::getVarLoc("uProj"), 1, GL_FALSE, &uProj[0][0]);
 
-    glBindVertexArray(VAO);
-    
+    glBindFramebuffer(GL_FRAMEBUFFER, blurredFBO);
     glDisable(GL_BLEND);
-    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, numParticle);
-    //glDepthMask(GL_TRUE);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    waterShader.use();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cumulativeDepthTex);
+    glUniform1i(ShaderProgram::getVarLoc("cumulativeDepthTex"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, blurredTex);
+    glUniform1i(ShaderProgram::getVarLoc("normalTex"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, depthColorTex);
+    glUniform1i(ShaderProgram::getVarLoc("depthTex"), 2);
+    
+    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvView"), 1, GL_FALSE, &inverse(camera->viewMatrix())[0][0]);
+    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvProj"), 1, GL_FALSE, &inverse(uProj)[0][0]);
+    glUniform3f(ShaderProgram::getVarLoc("lookDir"), camera->lookDir().x, camera->lookDir().y, camera->lookDir().z);
+    glUniform3f(ShaderProgram::getVarLoc("cameraPos"), camera->position().x, camera->position().y, camera->position().z);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 void updatePosesAndColors(){
@@ -266,8 +339,12 @@ void inputs(){
     // Hot reload shaders
     if (app->keyPressedOnce(GLFW_KEY_R, frameCount)){
         particleShader.reload();
+        cumulativeParticleShader.reload();
         gridShader.reload();
-        solverGPU->reload();
+        normalShader.reload();
+        blurShader.reload();
+        waterShader.reload();
+        //solverGPU->reload();
         cout << "Shaders reloaded." << endl;
     }
 
