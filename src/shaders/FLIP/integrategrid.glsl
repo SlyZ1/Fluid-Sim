@@ -35,16 +35,16 @@ void main(){
     if (i-1 >= 0) {
         int leftCell = coordToCell(ivec3(i-1, j, k), gridX, gridY, gridZ);
         int cellX = coordToCell(ivec3(i, j, k), gridX+1, gridY, gridZ);
-        velX[cellX] -= tensionDv(cell, leftCell);
+        velX[cellX] -= tensionDv(cell, leftCell) + velX[cellX] * dt * 0.01;
     }
     if (j-1 >= 0) {
         int bottomCell = coordToCell(ivec3(i, j-1, k), gridX, gridY, gridZ);
         int cellY = coordToCell(ivec3(i, j, k), gridX, gridY+1, gridZ);
-        velY[cellY] -= tensionDv(cell, bottomCell);
+        velY[cellY] -= tensionDv(cell, bottomCell) + velY[cellY] * dt * 0.01;
     }
     if (k-1 >= 0) {
         int backCell = coordToCell(ivec3(i, j, k-1), gridX, gridY, gridZ);
         int cellZ = coordToCell(ivec3(i, j, k), gridX, gridY, gridZ+1);
-        velZ[cellZ] -= tensionDv(cell, backCell);
+        velZ[cellZ] -= tensionDv(cell, backCell) + velZ[cellZ] * dt * 0.01;
     }
 }

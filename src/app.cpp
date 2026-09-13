@@ -52,6 +52,10 @@ void App::init(int width, int height, const char *name){
 
     glfwSwapInterval(0);
 
+    m_frameTimer.begin();
+    m_stats->add(FPS_LABEL); 
+    m_stats->add(FRAME_TIME_LABEL);
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
@@ -68,6 +72,12 @@ void App::startFrame(int frame){
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+
+    m_fpsCounter.update();
+    m_frameTimer.end();
+    m_frameTimer.begin();
+    m_stats->set(FPS_LABEL, m_fpsCounter.get());
+    m_stats->set(FRAME_TIME_LABEL, m_frameTimer.get());
 }
 
 void App::endFrame(){

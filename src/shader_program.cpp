@@ -17,7 +17,7 @@ fs::path ShaderProgram::extractPath(const string& line){
 string ShaderProgram::getShaderSource(const char* path){
     ifstream file(path);
     stringstream ss;
-    string line;
+    string line; 
 
     if (!file.is_open()) {
         cerr << "Erreur: impossible d'ouvrir le fichier " << path << endl;
@@ -134,7 +134,7 @@ void ShaderProgram::link(){
     m_shaders.clear();
 }
 
-void ShaderProgram::use(){
+void ShaderProgram::use() const {
     glUseProgram(m_shaderProgram);
     currentlyUsedProgram = m_shaderProgram;
 }
@@ -163,10 +163,10 @@ GLuint ShaderProgram::getVarLoc(const string& name){
     return glGetUniformLocation(currentlyUsedProgram, name.c_str());;
 }
 
-void ShaderProgram::destroy(){
+void ShaderProgram::destroy() const {
     glDeleteProgram(m_shaderProgram);
 }
 
-unsigned int ShaderProgram::id(){
+unsigned int ShaderProgram::id() const {
     return m_shaderProgram;
 }

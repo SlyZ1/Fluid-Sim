@@ -60,7 +60,7 @@ void main()
     vec3 dir = getRayDir(uv);
     const vec3 sunDir = normalize(vec3(1.5,0.6,-1));
 
-    float cumulativeDepth = texture(cumulativeDepthTex, uv).x * 10;
+    float cumulativeDepth = texture(cumulativeDepthTex, uv).x / 1000;
     vec3 backgroundColor = getSkyColor(dir, sunDir);
     if (cumulativeDepth <= 0) {
         FragColor = vec4(backgroundColor, 1);
@@ -87,9 +87,9 @@ void main()
 
     float f0 = (1 - 1.33) / (1 + 1.33);
     f0 *= f0;
-    float fresnel = f0 + (1 - f0) * pow(1 - dot(viewDir, normal), 5);
+    float fresnel = f0 + (1 - f0) * pow(1 - dot(viewDir, normal), 2);
     vec4 color = vec4(0.05, 0.65, 1.0, 1.0);
-    vec3 fluidShading = (1 - fresnel) * color.xyz * shading;
+    vec3 fluidShading = (1 - fresnel) * absorptionColor;
     fluidShading += fresnel * getSkyColor(reflect(-viewDir, normal), sunDir);
 
     FragColor = vec4(fluidShading, 1);

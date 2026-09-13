@@ -21,8 +21,8 @@ void main()
 
     float t = clamp(length(cVel) / 50.0, 0.0, 1.0);
 
-    float customRadius = mix(particleRadius, particleRadius / 4, t) * 4;
-    customRadius = particleRadius / 1.5 * 4;
+    float customRadius = mix(particleRadius, particleRadius / 4, t) * 2;
+    //customRadius = particleRadius * 4;
     radius = customRadius;
     viewPos.xy += vPos.xy * customRadius;
     gl_Position = uProj * viewPos;

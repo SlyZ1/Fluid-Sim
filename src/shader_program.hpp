@@ -19,23 +19,23 @@ class ShaderProgram {
         vector<GLuint> m_shaders = {};
         vector<const char*> m_paths = {};
         vector<int> m_types = {};
-        string m_name;
+        string m_name = "";
 
-        fs::path extractPath(const string& line);
-        string getShaderSource(const char *path);
+        static fs::path extractPath(const string& line);
+        static string getShaderSource(const char *path);
 
     public:
         ShaderProgram();
-        GLuint id();
+        GLuint id() const;
         void create();
         void load(int type, const char *path);
         void reload();
         void link();
-        void use();
+        void use() const;
         void dispatch(GLuint x = 1, GLuint y = 1, GLuint z = 1);
         static void indirectBarrier();
         static void indirectDispatch(GLuint buffer, int offset = 0);
-        void destroy();
+        void destroy() const;
         static GLuint getVarLoc(const string& name);
         static void SSBOBarrier();
 

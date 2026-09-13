@@ -16,7 +16,7 @@ public:
     static string toString(const glm::vec4& v, int precision = 3);
     
     template <typename T>
-    static vector<T> concat(std::initializer_list<std::reference_wrapper<const vector<T>>> vectors){
+    static vector<T> concat(initializer_list<reference_wrapper<const vector<T>>> vectors){
         vector<T> result;
         for (const auto& vRef : vectors) {
             const vector<T>& v = vRef.get();

@@ -8,8 +8,10 @@
 #include "camera.hpp"
 #include "shader_program.hpp"
 #include "helpers/stats.hpp"
-#include "solver.hpp"
-#include "solverGPU.hpp"
+#include "helpers/metrics.hpp"
+#include "solvers/solver.hpp"
+#include "solvers/solverGPU.hpp"
+#include "ui/ui.hpp"
 #include <omp.h>
 
 using namespace std;
@@ -39,17 +41,14 @@ ShaderProgram waterShader = {};
 ShaderProgram gridShader = {};
 shared_ptr<Camera> camera;
 shared_ptr<App> app;
-shared_ptr<Stats> stats;
 shared_ptr<Solver> solver;
 shared_ptr<SolverGPU> solverGPU;
-
-CPUTimer frameTimer = {};
-FPSCounter fpsCounter = {};
+shared_ptr<UI> ui;
 
 vector<vec3> poses = { vec3(0,0,0), vec3(0.5f, 0.f, 0.f) };
 vector<vec4> colors = { vec4(1.f), vec4(1.f) };
 float particleRadius = 1.5f;
-int numParticle = (int)6e5;
+int numParticle = (int)1e5;
 int iterations = 1;
 
 vec2 previousObstaclePos = vec2(0.f);
@@ -66,7 +65,7 @@ extern "C" {
 
 void init(){
     app = make_shared<App>();
-    app->init(1280, 720, "Default GLSL");
+    app->init(1280, 720, "Simulator");
     app->setClearColor(0, 0, 0, 1.0f);
     app->toggleCursor(!freeView);
 
@@ -173,21 +172,17 @@ void init(){
 
     camera = make_shared<Camera>(0.02f, 0.25f);
     camera->resetMousePos(app->mouseX(), app->mouseY());
-    
-    stats = make_shared<Stats>();
-    frameTimer.begin();
+
+    UIContext ctx = { app };
+    ui = make_shared<UI>(ctx);
+    ui->setStatsContext({ app, solverGPU });
 }
 
 void recordStats(){
-    fpsCounter.update();
-    frameTimer.end();
-    frameTimer.begin();
-
-    stats->frameTime = frameTimer.get();
-    stats->fps = fpsCounter.get();
+    shared_ptr<Stats> stats = app->getStats();
 
     if (frameCount % 100 != 0) return;
-    cout << setprecision(2) << stats->frameTime << "ms\t" << stats->fps << " fps" << endl; 
+    cout << setprecision(2) << stats->get("Frame Time").time << "ms\t" << stats->get("FPS").time << " fps" << endl; 
 }
 
 void render(){
@@ -218,86 +213,86 @@ void render(){
     glUniformMatrix4fv(ShaderProgram::getVarLoc("uView"), 1, GL_FALSE, &camera->viewMatrix()[0][0]);
     glUniformMatrix4fv(ShaderProgram::getVarLoc("uProj"), 1, GL_FALSE, &uProj[0][0]);
     
-    glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, numParticle);
 
-    cumulativeParticleShader.use();
+    // cumulativeParticleShader.use();
 
-    glUniform1f(ShaderProgram::getVarLoc("particleRadius"), particleRadius);
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uView"), 1, GL_FALSE, &camera->viewMatrix()[0][0]);
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uProj"), 1, GL_FALSE, &uProj[0][0]);
+    // glUniform1f(ShaderProgram::getVarLoc("particleRadius"), particleRadius);
+    // glUniformMatrix4fv(ShaderProgram::getVarLoc("uView"), 1, GL_FALSE, &camera->viewMatrix()[0][0]);
+    // glUniformMatrix4fv(ShaderProgram::getVarLoc("uProj"), 1, GL_FALSE, &uProj[0][0]);
     
-    glBindFramebuffer(GL_FRAMEBUFFER, cumulativeDepthFBO);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE);
-    glDisable(GL_DEPTH_TEST);
-    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, numParticle);
+    // glBindFramebuffer(GL_FRAMEBUFFER, cumulativeDepthFBO);
+    // glClear(GL_COLOR_BUFFER_BIT);
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_ONE, GL_ONE);
+    // glDisable(GL_DEPTH_TEST);
+    // glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, numParticle);
 
-    normalShader.use();
+    // normalShader.use();
     
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, depthColorTex);
-    glUniform1i(ShaderProgram::getVarLoc("depthTex"), 0);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, depthColorTex);
+    // glUniform1i(ShaderProgram::getVarLoc("depthTex"), 0);
     
-    glUniform2f(ShaderProgram::getVarLoc("viewport"), app->width(), app->height());
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvView"), 1, GL_FALSE, &inverse(camera->viewMatrix())[0][0]);
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvProj"), 1, GL_FALSE, &inverse(uProj)[0][0]);
+    // glUniform2f(ShaderProgram::getVarLoc("viewport"), app->width(), app->height());
+    // glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvView"), 1, GL_FALSE, &inverse(camera->viewMatrix())[0][0]);
+    // glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvProj"), 1, GL_FALSE, &inverse(uProj)[0][0]);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, normalFBO);
-    glDisable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    // glBindFramebuffer(GL_FRAMEBUFFER, normalFBO);
+    // glDisable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glEnable(GL_DEPTH_TEST);
+    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-    blurShader.use();
+    // blurShader.use();
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, depthColorTex);
-    glUniform1i(ShaderProgram::getVarLoc("depthColorTex"), 0);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, depthColorTex);
+    // glUniform1i(ShaderProgram::getVarLoc("depthColorTex"), 0);
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, normalTex);
-    glUniform1i(ShaderProgram::getVarLoc("normalTex"), 1);
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, normalTex);
+    // glUniform1i(ShaderProgram::getVarLoc("normalTex"), 1);
     
-    glUniform2f(ShaderProgram::getVarLoc("viewport"), app->width(), app->height());
+    // glUniform2f(ShaderProgram::getVarLoc("viewport"), app->width(), app->height());
 
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvView"), 1, GL_FALSE, &inverse(camera->viewMatrix())[0][0]);
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvProj"), 1, GL_FALSE, &inverse(uProj)[0][0]);
+    // glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvView"), 1, GL_FALSE, &inverse(camera->viewMatrix())[0][0]);
+    // glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvProj"), 1, GL_FALSE, &inverse(uProj)[0][0]);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, blurredFBO);
-    glDisable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    // glBindFramebuffer(GL_FRAMEBUFFER, blurredFBO);
+    // glDisable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glEnable(GL_DEPTH_TEST);
+    // glClear(GL_COLOR_BUFFER_BIT);
+    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-    waterShader.use();
+    // waterShader.use();
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, cumulativeDepthTex);
-    glUniform1i(ShaderProgram::getVarLoc("cumulativeDepthTex"), 0);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, cumulativeDepthTex);
+    // glUniform1i(ShaderProgram::getVarLoc("cumulativeDepthTex"), 0);
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, blurredTex);
-    glUniform1i(ShaderProgram::getVarLoc("normalTex"), 1);
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, blurredTex);
+    // glUniform1i(ShaderProgram::getVarLoc("normalTex"), 1);
 
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, depthColorTex);
-    glUniform1i(ShaderProgram::getVarLoc("depthTex"), 2);
+    // glActiveTexture(GL_TEXTURE2);
+    // glBindTexture(GL_TEXTURE_2D, depthColorTex);
+    // glUniform1i(ShaderProgram::getVarLoc("depthTex"), 2);
     
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvView"), 1, GL_FALSE, &inverse(camera->viewMatrix())[0][0]);
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvProj"), 1, GL_FALSE, &inverse(uProj)[0][0]);
-    glUniform3f(ShaderProgram::getVarLoc("lookDir"), camera->lookDir().x, camera->lookDir().y, camera->lookDir().z);
-    glUniform3f(ShaderProgram::getVarLoc("cameraPos"), camera->position().x, camera->position().y, camera->position().z);
+    // glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvView"), 1, GL_FALSE, &inverse(camera->viewMatrix())[0][0]);
+    // glUniformMatrix4fv(ShaderProgram::getVarLoc("uInvProj"), 1, GL_FALSE, &inverse(uProj)[0][0]);
+    // glUniform3f(ShaderProgram::getVarLoc("lookDir"), camera->lookDir().x, camera->lookDir().y, camera->lookDir().z);
+    // glUniform3f(ShaderProgram::getVarLoc("cameraPos"), camera->position().x, camera->position().y, camera->position().z);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // glClear(GL_COLOR_BUFFER_BIT);
+    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 void updatePosesAndColors(){
@@ -333,7 +328,7 @@ void inputs(){
             app->keyPressed(GLFW_KEY_LEFT_SHIFT),
             app->keyPressed(GLFW_KEY_C)
         };
-        camera->move(inputs, stats->frameTime);
+        camera->move(inputs, app->getStats()->get("Frame Time").time);
         camera->rotate(app->mouseX(), app->mouseY());
     };
 
@@ -388,6 +383,8 @@ int main(){
         app->startFrame(frameCount);
         recordStats();
         //solverGPU->setDt(stats->frameTime * 0.001f * 5);
+
+        ui->render();
 
         if (!paused){
             if (enableObstacle){
