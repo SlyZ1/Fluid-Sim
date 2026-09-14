@@ -1,4 +1,6 @@
 #include "ui.hpp" 
+#include "ui_colors.hpp"
+#include <format>
 
 void UI::setStatsContext(const vector<shared_ptr<IStatsProvider>>& ctx){
     m_statsCtx = vector<shared_ptr<Stats>>(ctx.size());
@@ -48,10 +50,17 @@ void UI::Label(const char* label, const string& desc, function<void(void)> custo
     ImGui::SetNextItemWidth(-FLT_MIN); 
 }
 
-void UI::BeginTwoColumnLayout() const
+void UI::AlignInputToRight(const char* input) const {
+    auto posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(input).x 
+    - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
+    if(posX > ImGui::GetCursorPosX())
+        ImGui::SetCursorPosX(posX);
+}
+
+void UI::BeginTwoColumnLayout(float columnRatio) const
 {
     float availWidth = ImGui::GetContentRegionAvail().x;
-    float labelWidth = std::max(availWidth * 0.4f, 120.0f);
+    float labelWidth = std::max(availWidth * columnRatio, 120.0f);
     ImGui::BeginTable("##layout", 2, ImGuiTableFlags_SizingStretchProp);
     ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, labelWidth);
     ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
@@ -71,20 +80,51 @@ void UI::renderStats(){
                             | ImGuiWindowFlags_NoMouseInputs
                             | ImGuiWindowFlags_NoResize;
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x, ImGui::GetMainViewport()->WorkPos.y), ImGuiCond_Always, ImVec2(1, 0));
+    ImGui::SetNextWindowSize(ImVec2(270.f, 0.f));
     if (ImGui::Begin("Stats", nullptr, flags)) {
         for (const shared_ptr<Stats>& stats : m_statsCtx)
         {
-            //TextWithShadow(stats->name.c_str(), ImVec4(1,1,1,1), ImVec4(1,1,1,1));
+            ImGui::PushStyleColor(ImGuiCol_Text, UIColors::lightBlue);
             ImGui::SeparatorText(stats->name.c_str());
+            ImGui::PopStyleColor();
             
             BeginTwoColumnLayout();
-            for (int i = 0; i < stats->numStats(); i++)
+            vector<StatIndex> timerPermutation = stats->getTimers().getSortPermutation();
+            float totalStatTime = stats->getTimer(timerPermutation[0]).value;
+            for (const StatIndex& i : timerPermutation)
             {
-                Stat stat = stats->get(i);
+                Stat<TimerValue> stat = stats->getTimer(i);
                 Label(stat.label.c_str());
-                ImGui::Text("%.2f", stat.time);
+                string percentage = " (" + to_string(glm::clamp((int)(100 * stat.value / totalStatTime), 0, 100)) + "%)";
+                if (i == timerPermutation[0]) percentage = "";
+                string text = Utils::formatFloat(stat.value, 2) + "ms" + percentage;
+                AlignInputToRight(text.c_str());
+                ImGui::Text("%s", text.c_str());
+            }
+            
+            if (stats->getCounters().numStats() > 0) ImGui::Dummy(ImVec2(0, 2.f));
+            for (StatIndex i = 0; i < stats->getCounters().numStats(); i++)
+            {
+                Stat<CounterValue> stat = stats->getCounter(i);
+                Label(stat.label.c_str());
+                const int largeValueThreshold = 10000;
+                string text = stat.value >= largeValueThreshold ? Utils::formatFloat(stat.value, 1, true) : to_string(stat.value);
+                AlignInputToRight(text.c_str());
+                ImGui::Text("%s", text.c_str());
+            }
+
+            if (stats->getStorages().numStats() > 0) ImGui::Dummy(ImVec2(0, 2.f));
+            for (StatIndex i = 0; i < stats->getStorages().numStats(); i++)
+            {
+                Stat<StorageValue> stat = stats->getStorage(i);
+                Label(stat.label.c_str());
+                string suffix = Metrics::storageSuffix(stat.value);
+                string text = to_string(stat.value) + suffix;
+                AlignInputToRight(text.c_str());
+                ImGui::Text("%s", text.c_str());
             }
             EndTwoColumnLayout();
+            if (stats->numStats() > 0) ImGui::Dummy(ImVec2(0, 2.f));
         }
     }
     ImGui::End();

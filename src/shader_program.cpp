@@ -1,4 +1,6 @@
 #include "shader_program.hpp"
+#include <fstream>
+#include <sstream>
 
 ShaderProgram::ShaderProgram() : m_shaderProgram(0) { }
 GLuint ShaderProgram::currentlyUsedProgram = 0;

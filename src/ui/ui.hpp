@@ -3,7 +3,6 @@
 
 #include "../app.hpp"
 #include "../helpers/stats.hpp"
-#include "ui_colors.hpp"
 
 struct UIContext {
     shared_ptr<App> app;
@@ -29,7 +28,9 @@ class UI {
         float widgetSize = 0.0f
     ) const;
 
-    void BeginTwoColumnLayout() const;
+    void AlignInputToRight(const char* input) const;
+
+    void BeginTwoColumnLayout(float columnRatio = 0.4f) const;
     void EndTwoColumnLayout() const;
 
     void renderStats();

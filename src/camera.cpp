@@ -1,5 +1,7 @@
 #include "camera.hpp"
 #include <iostream>
+#include <glm/gtc/matrix_transform.hpp>
+#include <algorithm>
 
 using namespace std;
 
@@ -46,15 +48,6 @@ bool Camera::getIsMoving(int frame){
     bool result = m_isMoving || m_isLooking;
     if (result) m_lastMovingFrame = frame;
     return frame - m_lastMovingFrame < 10; 
-}
-
-void Camera::updateGPU(){
-    glUniform3f(ShaderProgram::getVarLoc("camera.pos"), m_pos.x, m_pos.y, m_pos.z);
-    glUniform3f(ShaderProgram::getVarLoc("camera.lookDir"), lookDir().x, lookDir().y, lookDir().z);
-    
-    glUniform1f(ShaderProgram::getVarLoc("cameraFov"), m_camProps.fov);
-    glUniform1f(ShaderProgram::getVarLoc("cameraAperture"), m_camProps.aperture);
-    glUniform1f(ShaderProgram::getVarLoc("cameraFocalLength"), m_camProps.focalLength);
 }
 
 mat4 Camera::viewMatrix(){

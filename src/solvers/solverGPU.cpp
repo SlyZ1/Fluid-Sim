@@ -1,4 +1,7 @@
 #include "solverGPU.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/norm.hpp>
+#include "../helpers/utils.hpp"
 
 void SolverGPU::createBuffers(){
     vector<float> velX = vector<float>((gridX + 1) * gridY * gridZ, 0.f);
@@ -107,13 +110,18 @@ void SolverGPU::createBuffers(){
 SolverGPU::SolverGPU(int partN, float radius, float h, int gridX, int gridY, int gridZ, float timestep)
 : IStatsProvider("FLIP Solver"), 
 partN(partN), radius(radius), h(h), gridX(gridX), gridY(gridY), gridZ(gridZ), dt(timestep) {
-    m_stats->add(INTEGRATION_LABEL);
-    m_stats->add(PUSH_APPART_LABEL);
-    m_stats->add(COLLISION_LABEL);
-    m_stats->add(P2G_LABEL);
-    m_stats->add(SURFACE_TENSION_LABEL);
-    m_stats->add(INCOMPRESSIBILITY_LABEL);
-    m_stats->add(G2P_LABEL);
+    integrationStatIndex        = m_stats->registerTimer("Integration");
+    pushAppartStatIndex         = m_stats->registerTimer("Push Appart");
+    collisionStatIndex          = m_stats->registerTimer("Collision");
+    p2gStatIndex                = m_stats->registerTimer("P2G");
+    surfaceTensionStatIndex     = m_stats->registerTimer("Surface Tension");
+    incompressibilityStatIndex  = m_stats->registerTimer("Incompressibility");
+    g2pStatIndex                = m_stats->registerTimer("G2P");
+
+    StatIndex numPartStatIndex = m_stats->registerCounter("Num Particles");
+    StatIndex numCellsStatIndex = m_stats->registerCounter("Num Cells");
+    m_stats->setCounter(numPartStatIndex, partN);
+    m_stats->setCounter(numCellsStatIndex, gridX * gridY * gridZ);
 
     integrateTimer.init();
     collisionTimer.init();
@@ -683,34 +691,40 @@ void SolverGPU::updateFlip(){
     integrateTimer.beginFrame();
     integrateParticles();
     integrateTimer.endFrame();
+
     collisionTimer.beginFrame();
     particleCollisions();
     collisionTimer.endFrame();
+
     pushAppartTimer.beginFrame();
     pushAppartParticles(4);
     pushAppartTimer.endFrame();
+
     particleCollisions();
     
     p2gTimer.beginFrame();
     particlesToGrid();
     p2gTimer.endFrame();
+
     surfaceTensionTimer.beginFrame();
     surfaceTension();
     surfaceTensionTimer.endFrame();
+
     incompressibilityTimer.beginFrame();
     solveIncompressibility(300, true);
     incompressibilityTimer.endFrame();
+
     g2pTimer.beginFrame();
     gridToParticles();
     g2pTimer.endFrame();
-
-    m_stats->set(INTEGRATION_LABEL, integrateTimer.getLastResultMs());
-    m_stats->set(COLLISION_LABEL, collisionTimer.getLastResultMs());
-    m_stats->set(PUSH_APPART_LABEL, pushAppartTimer.getLastResultMs());
-    m_stats->set(P2G_LABEL, p2gTimer.getLastResultMs());
-    m_stats->set(SURFACE_TENSION_LABEL, surfaceTensionTimer.getLastResultMs());
-    m_stats->set(INCOMPRESSIBILITY_LABEL, incompressibilityTimer.getLastResultMs());
-    m_stats->set(G2P_LABEL, g2pTimer.getLastResultMs());
+    
+    m_stats->setTimer(integrationStatIndex,       integrateTimer.getLastResultMs());
+    m_stats->setTimer(collisionStatIndex,         2 * collisionTimer.getLastResultMs());
+    m_stats->setTimer(pushAppartStatIndex,        pushAppartTimer.getLastResultMs());
+    m_stats->setTimer(p2gStatIndex,               p2gTimer.getLastResultMs());
+    m_stats->setTimer(surfaceTensionStatIndex,    surfaceTensionTimer.getLastResultMs());
+    m_stats->setTimer(incompressibilityStatIndex, incompressibilityTimer.getLastResultMs());
+    m_stats->setTimer(g2pStatIndex,               g2pTimer.getLastResultMs());
 }
 
 void SolverGPU::updateObstacle(vec2 pos, vec2 vel, float rad){

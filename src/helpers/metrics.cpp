@@ -37,8 +37,15 @@ void GPUTimer::beginFrame(){
         if (available){
             GLuint64 elapsedNs;
             glGetQueryObjectui64v(queries[writeIndex], GL_QUERY_RESULT, &elapsedNs);
-            lastResultMs = elapsedNs / 1e6;
             inFlight[writeIndex] = false;
+            
+            m_frameCount++;
+            m_updateTimer += elapsedNs / 1e6;
+            if (m_updateTimer >= m_updateInterval * 1000.f && m_frameCount > 0) {
+                m_time = (float)(m_updateTimer / m_frameCount);
+                m_updateTimer = 0.0f;
+                m_frameCount = 0;
+            }
         }
     }
     glBeginQuery(GL_TIME_ELAPSED, queries[writeIndex]);

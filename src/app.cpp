@@ -1,7 +1,10 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <imgui/imgui_impl_opengl3.h>
+#include <imgui/imgui_impl_glfw.h>
 #include "app.hpp"
+#include <iostream>
 
 using namespace std;
 
@@ -53,18 +56,18 @@ void App::init(int width, int height, const char *name){
     glfwSwapInterval(0);
 
     m_frameTimer.begin();
-    m_stats->add(FPS_LABEL); 
-    m_stats->add(FRAME_TIME_LABEL);
+    m_fpsStatIndex = m_stats->registerCounter("FPS");
+    m_frameTimeStatIndex = m_stats->registerTimer("Frame Time");
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-void App::setClearColor(float r, float g, float b, float a){
+void App::setClearColor(float r, float g, float b, float a) const {
     glClearColor(r, g, b, a);
 }
 
-void App::startFrame(int frame){
+void App::startFrame(int frame) {
     if(keyPressedOnce(GLFW_KEY_Q, frame) && keyPressed(GLFW_KEY_LEFT_ALT))
         glfwSetWindowShouldClose(m_window, true);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -76,11 +79,11 @@ void App::startFrame(int frame){
     m_fpsCounter.update();
     m_frameTimer.end();
     m_frameTimer.begin();
-    m_stats->set(FPS_LABEL, m_fpsCounter.get());
-    m_stats->set(FRAME_TIME_LABEL, m_frameTimer.get());
+    m_stats->setCounter(m_fpsStatIndex, m_fpsCounter.get());
+    m_stats->setTimer(m_frameTimeStatIndex, m_frameTimer.get());
 }
 
-void App::endFrame(){
+void App::endFrame() const {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -88,15 +91,15 @@ void App::endFrame(){
     glfwPollEvents();
 }
 
-bool App::shouldClose(){
+bool App::shouldClose() const {
     return glfwWindowShouldClose(m_window);
 }
 
-bool App::keyPressed(int key){
+bool App::keyPressed(int key) const {
     return glfwGetKey(m_window, key) == GLFW_PRESS || glfwGetMouseButton(m_window, key) == GLFW_PRESS;
 }
 
-bool App::keyPressedOnce(int key, int frame){
+bool App::keyPressedOnce(int key, int frame) const {
     static int wasPressed[GLFW_KEY_LAST + 1] = {INT_MAX};
 
     bool isPressed = glfwGetKey(m_window, key) == GLFW_PRESS;
@@ -118,36 +121,40 @@ void App::toggleCursor(bool show){
     glfwSetInputMode(m_window, GLFW_CURSOR, !show ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 
-bool App::cursorIsHidden(){
+bool App::cursorIsHidden() const {
     return m_cursorHidden;
 }
 
-float App::mouseX(){
+float App::mouseX() const {
     double mouseX;
     glfwGetCursorPos(m_window, &mouseX, nullptr);
     float result = static_cast<float>(mouseX);
     return result;
 }
 
-float App::mouseY(){
+float App::mouseY() const {
     double mouseY;
     glfwGetCursorPos(m_window, nullptr, &mouseY);
     float result = static_cast<float>(mouseY);
     return result;
 }
 
-unsigned int App::width(){
+float App::dt() const {
+    return m_frameTimer.get();
+}
+
+unsigned int App::width() const {
     int width;
     glfwGetWindowSize(m_window, &width, nullptr);
     return width;
 }
 
-unsigned int App::height(){
+unsigned int App::height() const {
     int height;
     glfwGetWindowSize(m_window, nullptr, &height);
     return height;
 }
 
-void App::terminate(){
+void App::terminate() const {
     glfwTerminate();
 }

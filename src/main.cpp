@@ -14,6 +14,8 @@
 #include "ui/ui.hpp"
 #include <omp.h>
 
+#include <glm/gtc/matrix_transform.hpp>
+
 using namespace std;
 
 int frameCount = 0;
@@ -176,17 +178,12 @@ void init(){
     UIContext ctx = { app };
     ui = make_shared<UI>(ctx);
     ui->setStatsContext({ app, solverGPU });
-}
 
-void recordStats(){
-    shared_ptr<Stats> stats = app->getStats();
-
-    if (frameCount % 100 != 0) return;
-    cout << setprecision(2) << stats->get("Frame Time").time << "ms\t" << stats->get("FPS").time << " fps" << endl; 
+    cout << "Program started." << endl;
 }
 
 void render(){
-    mat4 uProj = perspective(radians(60.0f), (float)app->width() / app->height(), 0.1f, 20000.0f);
+    mat4 uProj = glm::perspective(radians(60.0f), (float)app->width() / app->height(), 0.1f, 20000.0f);
 
     particleShader.use();
 
@@ -295,17 +292,6 @@ void render(){
     // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void updatePosesAndColors(){
-    //poses = solver->getPos();
-    colors.clear();
-    colors = vector<vec4>((int)poses.size(), vec4(0.f));
-    vector<vec2> vels = solver->getVel();
-    for (int i = 0; i < (int)poses.size(); i++)
-    {
-        colors[i] = glm::mix(vec4(0,0,1,1), vec4(1), length(vels[i]) / 70.f);
-    }
-}
-
 void inputs(){
     if (app->keyPressedOnce(GLFW_KEY_ESCAPE, frameCount)){
         freeView = !freeView;
@@ -328,7 +314,7 @@ void inputs(){
             app->keyPressed(GLFW_KEY_LEFT_SHIFT),
             app->keyPressed(GLFW_KEY_C)
         };
-        camera->move(inputs, app->getStats()->get("Frame Time").time);
+        camera->move(inputs, app->dt());
         camera->rotate(app->mouseX(), app->mouseY());
     };
 
@@ -354,10 +340,7 @@ void inputs(){
     if (app->keyPressedOnce(GLFW_KEY_RIGHT, frameCount)){
         if (paused){
             for (int i = 0; i < iterations; i++)
-            {
-                solver->updateFlip();
-            }
-            updatePosesAndColors();
+                solverGPU->updateFlip();
         }
     }
     if (app->keyPressed(GLFW_MOUSE_BUTTON_LEFT)){
@@ -381,9 +364,6 @@ int main(){
     while(!app->shouldClose())
     {
         app->startFrame(frameCount);
-        recordStats();
-        //solverGPU->setDt(stats->frameTime * 0.001f * 5);
-
         ui->render();
 
         if (!paused){
@@ -397,13 +377,9 @@ int main(){
             }
 
             for (int i = 0; i < iterations; i++)
-            {
                 solverGPU->updateFlip();
-            }
-            //updatePosesAndColors();
         }
         previousEnableObstacle = enableObstacle;
-        if (frameCount % 50 == 0) solverGPU->printTimers();
 
         render();
         inputs();

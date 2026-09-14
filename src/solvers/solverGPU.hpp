@@ -4,10 +4,6 @@
 #include "../shader_program.hpp"
 #include <vector>
 #include <glm/glm.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/norm.hpp>
-#include <iostream>
-#include "../helpers/utils.hpp"
 #include "../helpers/metrics.hpp"
 #include "../helpers/stats.hpp"
 #include "../cgs/cgs.hpp"
@@ -94,13 +90,13 @@ private:
     GPUTimer incompressibilityTimer = {};
     GPUTimer g2pTimer = {};
     GPUTimer scanTimer = {};
-    const string INTEGRATION_LABEL = "Integration";
-    const string PUSH_APPART_LABEL = "Push Appart";
-    const string COLLISION_LABEL = "Collision";
-    const string P2G_LABEL = "P2G";
-    const string SURFACE_TENSION_LABEL = "Surface Tension";
-    const string INCOMPRESSIBILITY_LABEL = "Incompressibility";
-    const string G2P_LABEL = "G2P";
+    StatIndex integrationStatIndex = 0;
+    StatIndex pushAppartStatIndex = 0;
+    StatIndex collisionStatIndex = 0;
+    StatIndex p2gStatIndex = 0;
+    StatIndex surfaceTensionStatIndex = 0;
+    StatIndex incompressibilityStatIndex = 0;
+    StatIndex g2pStatIndex = 0;
 
     int partN = 0;
 

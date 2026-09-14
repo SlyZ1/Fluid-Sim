@@ -1,10 +1,7 @@
 #ifndef APP_HPP
 #define APP_HPP
 
-#include <iostream>
 #include <imgui/imgui.h>
-#include <imgui/imgui_impl_opengl3.h>
-#include <imgui/imgui_impl_glfw.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "helpers/metrics.hpp"
@@ -18,27 +15,28 @@ class App : public IStatsProvider {
         ImGuiIO* m_io = {};
         bool m_cursorHidden = false;
         
-        const string FPS_LABEL = "FPS";
-        const string FRAME_TIME_LABEL = "Frame Time";
+        StatIndex m_fpsStatIndex = 0;
+        StatIndex m_frameTimeStatIndex = 0;
         CPUTimer m_frameTimer = {};
         FPSCounter m_fpsCounter = {};
 
     public:
         App() : IStatsProvider("App") {}
         void init(int width, int height, const char *name);
-        void setClearColor(float r, float g, float b, float a);
+        void setClearColor(float r, float g, float b, float a) const ;
         void startFrame(int frameCount);
-        void endFrame();
-        bool shouldClose();
-        bool keyPressed(int key);
-        bool keyPressedOnce(int key, int frame);
+        void endFrame() const;
+        bool shouldClose() const;
+        bool keyPressed(int key) const;
+        bool keyPressedOnce(int key, int frame) const;
         void toggleCursor(bool show);
-        bool cursorIsHidden();
-        float mouseX();
-        float mouseY();
-        unsigned int width();
-        unsigned int height();
-        void terminate();
+        bool cursorIsHidden() const;
+        float mouseX() const;
+        float mouseY() const;
+        float dt() const;
+        unsigned int width() const;
+        unsigned int height() const;
+        void terminate() const;
 };
 
 #endif

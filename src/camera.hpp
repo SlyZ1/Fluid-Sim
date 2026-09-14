@@ -1,9 +1,6 @@
 #ifndef CAMERA
 #define CAMERA
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include "shader_program.hpp"
-#include "helpers/utils.hpp"
 
 using namespace glm;
 
@@ -51,7 +48,6 @@ class Camera {
         void setPosition(vec3 newPos) { m_pos = newPos; }
         bool getIsMoving(int frame);
         void hasStoppedMoving() { m_isMoving = false; m_isLooking = false; }
-        void updateGPU();
         CameraProperties* getCameraProperties() { return &m_camProps; }
         mat4 viewMatrix();
 };
