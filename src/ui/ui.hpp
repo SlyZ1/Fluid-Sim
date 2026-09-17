@@ -33,6 +33,9 @@ class UI {
     void BeginTwoColumnLayout(float columnRatio = 0.4f) const;
     void EndTwoColumnLayout() const;
 
+    void drawTimers(StatsPrimitive<float> timers);
+    void drawCounters(StatsPrimitive<int> counters);
+    void drawStorages(StatsPrimitive<int> storage);
     void renderStats();
 
     public:

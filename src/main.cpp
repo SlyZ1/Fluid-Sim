@@ -50,7 +50,7 @@ shared_ptr<UI> ui;
 vector<vec3> poses = { vec3(0,0,0), vec3(0.5f, 0.f, 0.f) };
 vector<vec4> colors = { vec4(1.f), vec4(1.f) };
 float particleRadius = 1.5f;
-int numParticle = (int)1e5;
+int numParticle = (int)5e5;
 int iterations = 1;
 
 vec2 previousObstaclePos = vec2(0.f);
@@ -60,10 +60,12 @@ bool enableObstacle = false;
 bool paused = false;
 bool freeView = true;
 
+#ifdef _WIN32
 extern "C" {
     __declspec(dllexport) unsigned long NvOptimusEnablement = 1;
     __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
+#endif
 
 void init(){
     app = make_shared<App>();

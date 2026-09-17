@@ -697,7 +697,7 @@ void SolverGPU::updateFlip(){
     collisionTimer.endFrame();
 
     pushAppartTimer.beginFrame();
-    pushAppartParticles(4);
+    pushAppartParticles(2);
     pushAppartTimer.endFrame();
 
     particleCollisions();

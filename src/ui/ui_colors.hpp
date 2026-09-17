@@ -3,7 +3,7 @@
 
 #include <imgui/imgui.h>
 
-static class UIColors {
+class UIColors {
 public:
     static ImVec4 bgColor;
     static ImVec4 mgColor;

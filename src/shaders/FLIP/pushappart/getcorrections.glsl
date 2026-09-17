@@ -4,7 +4,7 @@ layout(local_size_x = 256) in;
 layout(std430, binding = 0) readonly buffer FirstCellParticleBuffer { uint[] firstCellParticle; };
 layout(std430, binding = 1) readonly buffer CellParticleIdsBuffer { uint[] cellParticleIds; };
 layout(std430, binding = 2) readonly buffer OldPartPosBuffer { vec4[] oldPartPos; };
-layout(std430, binding = 3) buffer PartPosBuffer { vec4[] partPos; };
+layout(std430, binding = 3) writeonly buffer PartPosBuffer { vec4[] partPos; };
 
 uniform int partN;
 uniform int gridX;
@@ -85,5 +85,5 @@ void main(){
     }
 
     if (currentNumCorrections > 0) 
-        partPos[i].xyz += currentCorrections / currentNumCorrections;
+        partPos[i].xyz = currentPos + currentCorrections / currentNumCorrections;
 }

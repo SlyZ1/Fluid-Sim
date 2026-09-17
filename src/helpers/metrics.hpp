@@ -6,16 +6,14 @@
 #include <cmath>
 #include <iostream>
 
-using namespace std;
-
 using CounterValue = int;
 using TimerValue = float;
 using StorageValue = int;
 
 namespace Metrics {
-    static string storageSuffix(StorageValue& v){
-        static string m_storageSuffixes[5] = {"B", "KB", "MB", "GB", "TB"};
-        string result = m_storageSuffixes[0];
+    inline std::string storageSuffix(StorageValue& v){
+        static std::string m_storageSuffixes[5] = {"B", "KB", "MB", "GB", "TB"};
+        std::string result = m_storageSuffixes[0];
         for (int i = 1; i < 5; i++)
         {
             if (v <= 1e3) break;

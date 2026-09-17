@@ -71,59 +71,99 @@ void UI::EndTwoColumnLayout() const
     ImGui::EndTable();
 }
 
+void UI::drawTimers(StatsPrimitive<float> timers){
+    Stat<TimerValue> totalTimeStat = timers.get(0);
+    if (timers.numStats() <= 2){
+        BeginTwoColumnLayout();
+        Label(totalTimeStat.label.c_str());
+        string text = Utils::formatFloat(totalTimeStat.value, 2) + "ms";
+        AlignInputToRight(text.c_str());
+        ImGui::Text("%s", text.c_str());
+        EndTwoColumnLayout();
+    }
+    else {
+        ImGui::Indent();
+
+        string headerName = "Latencies: " + Utils::formatFloat(totalTimeStat.value, 2) + "ms###latencies";
+        if (!ImGui::CollapsingHeader(headerName.c_str())) { ImGui::Unindent(); return; }
+
+        BeginTwoColumnLayout();
+        vector<StatIndex> timerPermutation = timers.getSortPermutation();
+        float totalStatTime = timers.get(timerPermutation[0]).value;
+        for (const StatIndex& i : timerPermutation)
+        {
+            if (i == 0) continue;
+            Stat<TimerValue> stat = timers.get(i);
+            Label(stat.label.c_str());
+            string percentage = " (" + to_string(glm::clamp((int)(100 * stat.value / totalStatTime), 0, 100)) + "%)";
+            if (i == timerPermutation[0]) percentage = "";
+            string text = Utils::formatFloat(stat.value, 2) + "ms" + percentage;
+            AlignInputToRight(text.c_str());
+            ImGui::Text("%s", text.c_str());
+        }
+        EndTwoColumnLayout();
+        ImGui::Unindent();
+    }
+}
+
+void UI::drawCounters(StatsPrimitive<int> counters){
+    if (counters.numStats() > 1){
+        ImGui::Indent();
+        if (!ImGui::CollapsingHeader("Counters")) { ImGui::Unindent(); return; }
+    }
+
+    BeginTwoColumnLayout();
+    for (StatIndex i = 0; i < counters.numStats(); i++)
+    {
+        Stat<CounterValue> stat = counters.get(i);
+        Label(stat.label.c_str());
+        string text = stat.value >= 10000 ? Utils::formatFloat(stat.value, 2, true) : to_string(stat.value);
+        AlignInputToRight(text.c_str());
+        ImGui::Text("%s", text.c_str());
+    }
+    EndTwoColumnLayout();
+
+    if (counters.numStats() > 1) ImGui::Unindent();
+}
+
+void UI::drawStorages(StatsPrimitive<int> storages){
+    if (storages.numStats() > 1){
+        ImGui::Indent();
+        if (!ImGui::CollapsingHeader("Storages")) { ImGui::Unindent(); return; }
+    }
+
+    BeginTwoColumnLayout();
+    for (StatIndex i = 0; i < storages.numStats(); i++)
+    {
+        Stat<StorageValue> stat = storages.get(i);
+        Label(stat.label.c_str());
+        string suffix = Metrics::storageSuffix(stat.value);
+        string text = to_string(stat.value) + suffix;
+        AlignInputToRight(text.c_str());
+        ImGui::Text("%s", text.c_str());
+    }
+    EndTwoColumnLayout();
+
+    if (storages.numStats() > 1) ImGui::Unindent();
+}
+
 void UI::renderStats(){
     ImGuiIO& io = ImGui::GetIO();
     ImGuiWindowFlags flags =  ImGuiWindowFlags_AlwaysAutoResize
                             | ImGuiWindowFlags_NoCollapse
                             | ImGuiWindowFlags_NoDecoration
                             | ImGuiWindowFlags_NoMove
-                            | ImGuiWindowFlags_NoMouseInputs
                             | ImGuiWindowFlags_NoResize;
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x, ImGui::GetMainViewport()->WorkPos.y), ImGuiCond_Always, ImVec2(1, 0));
     ImGui::SetNextWindowSize(ImVec2(270.f, 0.f));
     if (ImGui::Begin("Stats", nullptr, flags)) {
         for (const shared_ptr<Stats>& stats : m_statsCtx)
         {
-            ImGui::PushStyleColor(ImGuiCol_Text, UIColors::lightBlue);
-            ImGui::SeparatorText(stats->name.c_str());
-            ImGui::PopStyleColor();
-            
-            BeginTwoColumnLayout();
-            vector<StatIndex> timerPermutation = stats->getTimers().getSortPermutation();
-            float totalStatTime = stats->getTimer(timerPermutation[0]).value;
-            for (const StatIndex& i : timerPermutation)
-            {
-                Stat<TimerValue> stat = stats->getTimer(i);
-                Label(stat.label.c_str());
-                string percentage = " (" + to_string(glm::clamp((int)(100 * stat.value / totalStatTime), 0, 100)) + "%)";
-                if (i == timerPermutation[0]) percentage = "";
-                string text = Utils::formatFloat(stat.value, 2) + "ms" + percentage;
-                AlignInputToRight(text.c_str());
-                ImGui::Text("%s", text.c_str());
+            if (ImGui::CollapsingHeader(stats->name.c_str())) {
+                drawTimers(stats->getTimers());
+                drawCounters(stats->getCounters());
+                drawStorages(stats->getStorages());
             }
-            
-            if (stats->getCounters().numStats() > 0) ImGui::Dummy(ImVec2(0, 2.f));
-            for (StatIndex i = 0; i < stats->getCounters().numStats(); i++)
-            {
-                Stat<CounterValue> stat = stats->getCounter(i);
-                Label(stat.label.c_str());
-                const int largeValueThreshold = 10000;
-                string text = stat.value >= largeValueThreshold ? Utils::formatFloat(stat.value, 1, true) : to_string(stat.value);
-                AlignInputToRight(text.c_str());
-                ImGui::Text("%s", text.c_str());
-            }
-
-            if (stats->getStorages().numStats() > 0) ImGui::Dummy(ImVec2(0, 2.f));
-            for (StatIndex i = 0; i < stats->getStorages().numStats(); i++)
-            {
-                Stat<StorageValue> stat = stats->getStorage(i);
-                Label(stat.label.c_str());
-                string suffix = Metrics::storageSuffix(stat.value);
-                string text = to_string(stat.value) + suffix;
-                AlignInputToRight(text.c_str());
-                ImGui::Text("%s", text.c_str());
-            }
-            EndTwoColumnLayout();
             if (stats->numStats() > 0) ImGui::Dummy(ImVec2(0, 2.f));
         }
     }
