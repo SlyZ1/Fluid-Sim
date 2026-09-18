@@ -19,6 +19,9 @@ class App : public IStatsProvider {
         CPUTimer m_frameTimer = {};
         FPSCounter m_fpsCounter = {};
 
+        float m_lastTime = 0;
+        float m_dt = 0;
+
         int m_wasPressed[GLFW_KEY_LAST + 1];
 
     public:

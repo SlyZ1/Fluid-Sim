@@ -7,8 +7,11 @@
 #include "app.hpp"
 #include "camera.hpp"
 #include "shader_program.hpp"
+
 #include "helpers/stats.hpp"
 #include "helpers/metrics.hpp"
+#include "helpers/logger.hpp"
+
 #include "solvers/solverGPU.hpp"
 #include "ui/ui.hpp"
 
@@ -46,7 +49,6 @@ shared_ptr<SolverGPU> solverGPU;
 shared_ptr<UI> ui;
 
 vector<vec3> poses = { vec3(0,0,0), vec3(0.5f, 0.f, 0.f) };
-vector<vec4> colors = { vec4(1.f), vec4(1.f) };
 float particleRadius = 1.5f;
 int numParticle = (int)5e5;
 int iterations = 1;
@@ -161,7 +163,7 @@ void init(){
     
     //solver = make_shared<Solver>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, 0.03f);
     
-    camera = make_shared<Camera>(0.02f, 0.25f);
+    camera = make_shared<Camera>(0.02f, 1.5f);
     camera->resetMousePos(app->mouseX(), app->mouseY());
     
     float solverH = 2 * 2 * particleRadius;
@@ -179,7 +181,7 @@ void init(){
     ui = make_shared<UI>(ctx);
     ui->setStatsContext({ app, solverGPU });
     
-    cout << "Program started." << endl;
+    Logger::logSuccess("Program started.", __LOG_DATA__);
 }
 
 void render(){
@@ -192,13 +194,6 @@ void render(){
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
     glVertexAttribDivisor(1, 1);
     glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, colorsVBO);
-    glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(vec4), colors.data(), GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
-    glVertexAttribDivisor(2, 1);
-    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, solverGPU->getVelBuffer());
 
@@ -315,7 +310,7 @@ void inputs(){
             app->keyPressed(GLFW_KEY_C)
         };
         camera->move(inputs, app->dt());
-        camera->rotate(app->mouseX(), app->mouseY());
+        camera->rotate(app->mouseX(), app->mouseY(), app->dt());
     };
 
     // Hot reload shaders
@@ -326,7 +321,7 @@ void inputs(){
         normalShader.reload();
         blurShader.reload();
         waterShader.reload();
-        cout << "Shaders reloaded." << endl;
+        Logger::logSuccess("Shaders reloaded.", __LOG_DATA__);
     }
     
     if (app->keyPressedOnce(GLFW_KEY_ENTER, frameCount)){
@@ -358,8 +353,8 @@ void end(){
     glDeleteBuffers(1, &gridVBO);
     glDeleteBuffers(1, &posesVBO);
     glDeleteBuffers(1, &colorsVBO);
-    glDeleteBuffers(1, &depthFBO);
-
+    
+    glDeleteFramebuffers(1, &depthFBO);
     glDeleteFramebuffers(1, &cumulativeDepthFBO);
     glDeleteFramebuffers(1, &normalFBO);
     glDeleteFramebuffers(1, &blurredFBO);

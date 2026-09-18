@@ -1,5 +1,5 @@
-#ifndef CAMERA
-#define CAMERA
+#ifndef CAMERA_HPP
+#define CAMERA_HPP
 #include <glm/glm.hpp>
 
 struct CameraProperties {
@@ -39,7 +39,7 @@ class Camera {
                 m_pos = glm::vec3(0.0f, 0.0f, 1000.0f);
             }
         void move(const CameraMoveInputs& inputs, float dt);
-        void rotate(float mouseX, float mouseY);
+        void rotate(float mouseX, float mouseY, float dt);
         void resetMousePos(float mouseX, float mouseY);
         glm::vec3 lookDir();
         glm::vec3 position() const { return m_pos; }

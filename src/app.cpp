@@ -6,6 +6,7 @@
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_impl_glfw.h>
 
+#include "helpers/logger.hpp"
 
 using namespace std;
 
@@ -35,7 +36,7 @@ void App::init(int width, int height, const char *name){
 #endif
     if (!glfwInit())
     {
-        cerr << "Failed to initialize GLFW" << endl;
+        Logger::logError("Failed to initialize GLFW", __LOG_DATA__);
         exit(1);
     }
 
@@ -51,14 +52,14 @@ void App::init(int width, int height, const char *name){
     glfwSetWindowTitle(m_window, name);
     if (m_window == NULL)
     {
-        cerr << "Failed to open GLFW window" << endl;
+        Logger::logError("Failed to open GLFW window", __LOG_DATA__);
         exit(1);
     }
     glfwMakeContextCurrent(m_window);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        cerr << "Failed to initialize GLAD" << endl;
+        Logger::logError("Failed to initialize GLAD", __LOG_DATA__);
         exit(1);
     }
 
@@ -100,6 +101,10 @@ void App::startFrame(int frame) {
     m_frameTimer.begin();
     m_stats->setCounter(m_fpsStatIndex, m_fpsCounter.get());
     m_stats->setTimer(m_frameTimeStatIndex, m_frameTimer.get());
+
+    double now = glfwGetTime();
+    m_dt = (float)now - m_lastTime;
+    m_lastTime = (float)now;
 }
 
 void App::endFrame() const {
@@ -162,7 +167,7 @@ float App::mouseY() const {
 }
 
 float App::dt() const {
-    return m_frameTimer.get();
+    return std::min(m_dt, 1.0f / 50.0f) * 1000.f;
 }
 
 unsigned int App::width() const {

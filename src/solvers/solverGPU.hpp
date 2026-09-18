@@ -118,7 +118,7 @@ private:
     glm::ivec3 cellToCoord(int cell, int nx, int ny);
     glm::vec3 cellToPos(int cell, int nx, int ny, int nz);
 
-    static void loadCompute(ShaderProgram& prog, const std::string path);
+    static void loadCompute(ShaderProgram& prog, const std::string& path);
  
     void deleteBuffers();
     void createBuffers();

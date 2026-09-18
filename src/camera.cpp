@@ -35,9 +35,9 @@ void Camera::resetMousePos(float mouseX, float mouseY){
     m_lastMouseY = mouseY;
 }
 
-void Camera::rotate(float mouseX, float mouseY){
-    float deltaMouseX = mouseX - m_lastMouseX;
-    float deltaMouseY = mouseY - m_lastMouseY;
+void Camera::rotate(float mouseX, float mouseY, float dt){
+    float deltaMouseX = (mouseX - m_lastMouseX) / dt;
+    float deltaMouseY = (mouseY - m_lastMouseY) / dt;
     m_lastMouseX = mouseX;
     m_lastMouseY = mouseY;
     m_angles += vec2(-deltaMouseX, -deltaMouseY) * m_lookSensitivity;

@@ -7,9 +7,6 @@ layout(std430, binding = 0) buffer ScalarBuffer {
 layout(std430, binding = 1) writeonly buffer IndirectBuffer {
     uint data[];
 };
-layout(std430, binding = 2) writeonly buffer DispatchBuffer {
-    uint dispatch[];
-};
 
 uniform int rTrIndex;
 uniform int rTr0ValueIndex;
@@ -23,9 +20,6 @@ void main(){
         for(int i = 0; i < 3 * numIndirectParams; i++) {
             data[i] = 0;
         }
-        dispatch[0] = 0;
-        dispatch[1] = 0;
-        dispatch[2] = 0;
     }
     for(int i = 0; i < numScalars - 1; i++) {
         if (i == rTrIndex || i == rTr0ValueIndex) continue;

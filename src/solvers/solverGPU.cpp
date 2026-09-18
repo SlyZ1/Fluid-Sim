@@ -109,7 +109,7 @@ void SolverGPU::createBuffers(){
     glBufferData(GL_SHADER_STORAGE_BUFFER, m_gridX * m_gridY * m_gridZ * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 }
 
-void SolverGPU::loadCompute(ShaderProgram& prog, const std::string path){
+void SolverGPU::loadCompute(ShaderProgram& prog, const std::string& path){
     prog.create();
     prog.load(GL_COMPUTE_SHADER, path);
     prog.link();
@@ -535,7 +535,7 @@ void SolverGPU::solveIncompressibility(int iterations, bool useCGS){
             }
         };
         DispatchParams sparseMatVecParams = { (uint)(m_gridX + 7) / 8, (uint)(m_gridY + 7) / 8, (uint)(m_gridZ + 7) / 8 };
-        m_cgs.solve(20, 1e-3f, sparseMatVec, sparseMatVecParams);
+        m_cgs.solve(iterations, 1e-3f, sparseMatVec, sparseMatVecParams);
     
         ShaderProgram::SSBOBarrier();
     
@@ -640,7 +640,7 @@ void SolverGPU::updateFlip(){
     m_surfaceTensionTimer.endFrame();
 
     m_incompressibilityTimer.beginFrame();
-    solveIncompressibility(300, true);
+    solveIncompressibility(20, true);
     m_incompressibilityTimer.endFrame();
 
     m_g2pTimer.beginFrame();

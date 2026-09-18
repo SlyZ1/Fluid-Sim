@@ -3,6 +3,8 @@
 #include <sstream>
 #include <GLFW/glfw3.h>
 
+#include "helpers/logger.hpp"
+
 namespace fs = std::filesystem;
 
 using namespace std;
@@ -29,13 +31,13 @@ fs::path ShaderProgram::extractPath(const string& line){
     return fs::path(line.substr(start, end - start));
 }
 
-string ShaderProgram::getShaderSource(string path){
+string ShaderProgram::getShaderSource(const string& path){
     ifstream file(path);
     stringstream ss;
     string line; 
 
     if (!file.is_open()) {
-        cerr << "Erreur: impossible d'ouvrir le fichier " << path << endl;
+        Logger::logError("Cannot open file at " + path, __LOG_DATA__);
         return "";
     }
 
@@ -60,7 +62,7 @@ string ShaderProgram::getShaderSource(string path){
     return ss.str();
 }
 
-void ShaderProgram::load(int type, string path){
+void ShaderProgram::load(int type, const string& path){
     m_types.push_back(type);
     m_paths.push_back(path);
 
@@ -85,13 +87,12 @@ void ShaderProgram::load(int type, string path){
     if(!success)
     {
         glGetShaderInfoLog(shader, 512, NULL, infoLog);
-        cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << endl;
-        cerr << "at " << m_name << ".glsl" << endl;
+        Logger::logError("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" + string(infoLog) + "\nat " + m_name + ".glsl", __LOG_DATA__);
     }
 
     //Add to program
     glAttachShader(m_shaderProgram, shader);
-    cout << "Compiling " << m_name << ".glsl..." << endl;
+    Logger::logInfo("Compiling " + m_name + ".glsl...", __LOG_DATA__);
 }
 
 void ShaderProgram::reload(){
@@ -118,8 +119,7 @@ void ShaderProgram::reload(){
         if(!success)
         {
             glGetShaderInfoLog(shader, 512, NULL, infoLog);
-            cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << endl;
-            cerr << "at " << m_name << ".glsl" << endl;
+            Logger::logError("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" + string(infoLog) + "\nat " + m_name + ".glsl", __LOG_DATA__);
         }
 
         //Add to program
@@ -138,8 +138,7 @@ void ShaderProgram::link(){
     glGetProgramiv(m_shaderProgram, GL_LINK_STATUS, &success);
     if(!success) {
         glGetProgramInfoLog(m_shaderProgram, 512, NULL, infoLog);
-        cerr << "ShaderProgram linking failed : " << infoLog << endl;
-        cerr << "at " << m_name << ".glsl" << endl;
+        Logger::logError("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" + string(infoLog) + "\nat " + m_name + ".glsl", __LOG_DATA__);
     }
     
     //Delete shaders

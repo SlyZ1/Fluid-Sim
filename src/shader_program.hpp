@@ -18,7 +18,7 @@ class ShaderProgram {
         
         static std::unordered_map<GLuint, std::unordered_map<std::string, GLuint>> s_uniformCache;
         static std::filesystem::path extractPath(const std::string& line);
-        static std::string getShaderSource(std::string path);
+        static std::string getShaderSource(const std::string& path);
 
     public:
         ShaderProgram();
@@ -28,11 +28,11 @@ class ShaderProgram {
 
         GLuint id() const;
         void create();
-        void load(int type, std::string path);
+        void load(int type, const std::string& path);
         void reload();
         void link();
         void use() const;
-        void dispatch(GLuint x = 1, GLuint y = 1, GLuint z = 1);
+        static void dispatch(GLuint x = 1, GLuint y = 1, GLuint z = 1);
         static void indirectBarrier();
         static void indirectDispatch(GLuint buffer, int offset = 0);
         void destroy();
