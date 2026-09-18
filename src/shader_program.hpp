@@ -2,44 +2,46 @@
 #define SHADER_PROG_HPP
 
 #include <iostream>
-#include <glad/glad.h>
 #include <vector>
 #include <filesystem>
-
-namespace fs = std::filesystem;
-
-using namespace std;
+#include <glad/glad.h>
+#include <unordered_map>
 
 class ShaderProgram {
     private:
-        static GLuint currentlyUsedProgram; 
+        static GLuint s_currentlyUsedProgram; 
         GLuint m_shaderProgram = 0;
-        vector<GLuint> m_shaders = {};
-        vector<const char*> m_paths = {};
-        vector<int> m_types = {};
-        string m_name = "";
-
-        static fs::path extractPath(const string& line);
-        static string getShaderSource(const char *path);
+        std::vector<GLuint> m_shaders = {};
+        std::vector<std::string> m_paths = {};
+        std::vector<int> m_types = {};
+        std::string m_name = "";
+        
+        static std::unordered_map<GLuint, std::unordered_map<std::string, GLuint>> s_uniformCache;
+        static std::filesystem::path extractPath(const std::string& line);
+        static std::string getShaderSource(std::string path);
 
     public:
         ShaderProgram();
+        ~ShaderProgram();
+        ShaderProgram(const ShaderProgram&) = delete;
+        ShaderProgram& operator=(const ShaderProgram&) = delete;
+
         GLuint id() const;
         void create();
-        void load(int type, const char *path);
+        void load(int type, std::string path);
         void reload();
         void link();
         void use() const;
         void dispatch(GLuint x = 1, GLuint y = 1, GLuint z = 1);
         static void indirectBarrier();
         static void indirectDispatch(GLuint buffer, int offset = 0);
-        void destroy() const;
-        static GLuint getVarLoc(const string& name);
+        void destroy();
+        static GLuint getVarLoc(const std::string& name);
         static void SSBOBarrier();
 
         template<typename T>
-        static tuple<GLuint, GLuint, GLuint> 
-        addData(const vector<T>& data, const vector<GLuint>& indices){
+        static std::tuple<GLuint, GLuint, GLuint> 
+        addData(const std::vector<T>& data, const std::vector<GLuint>& indices){
             GLuint VBObj, VAObj, EBObj;
             
             glGenVertexArrays(1, &VAObj);

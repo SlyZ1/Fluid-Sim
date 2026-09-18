@@ -20,7 +20,7 @@ void main(){
     int x = int(gl_GlobalInvocationID.x);
     int y = int(gl_GlobalInvocationID.y);
     int z = int(gl_GlobalInvocationID.z);
-    if (x >= gridX || y >= gridY || z >= gridZ) return;
+    if (x > gridX || y > gridY || z > gridZ) return;
 
     ivec3 coord = ivec3(x, y, z);
 

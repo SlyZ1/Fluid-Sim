@@ -13,7 +13,7 @@ uniform int alpha_operations[16];
 float intPow(float base, int exp) {
     if (exp == 0) return 1.0;
     float result = 1.0;
-    float b = (exp < 0) ? 1.0 / base : base;
+    float b = (exp < 0) ? 1.0 / (base + 1e-5) : base;
     int e = abs(exp);
     for (int k = 0; k < e; k++)
         result *= b;

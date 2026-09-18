@@ -5,46 +5,41 @@
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
-#include <iostream>
-#include "../helpers/utils.hpp"
-
-using namespace std;
-using namespace glm;
 
 class Solver{
 private:
-    int partN = 0;
-    vector<vec2> partPos = {};
-    vector<vec2> partVel = {};
+    int m_partN = 0;
+    std::vector<glm::vec2> m_partPos = {};
+    std::vector<glm::vec2> m_partVel = {};
 
-    vec2 obstaclePos = vec2(0.f);
-    vec2 obstacleVel = vec2(0.f);
-    float obstacleRadius = 0.f;
+    glm::vec2 m_obstaclePos = glm::vec2(0.f);
+    glm::vec2 m_obstacleVel = glm::vec2(0.f);
+    float m_obstacleRadius = 0.f;
 
-    float radius = 0.f;
-    float h = 0.f;
-    int gridX = 0;
-    int gridY = 0;
-    vector<float> oldVelX = {};
-    vector<float> oldVelY = {};
-    vector<float> velX = {};
-    vector<float> velY = {};
-    vector<float> rX = {};
-    vector<float> rY = {};
-    vector<bool> isAir = {};
-    vector<bool> isWall = {};
+    float m_radius = 0.f;
+    float m_h = 0.f;
+    int m_gridX = 0;
+    int m_gridY = 0;
+    std::vector<float> m_oldVelX = {};
+    std::vector<float> m_oldVelY = {};
+    std::vector<float> m_velX = {};
+    std::vector<float> m_velY = {};
+    std::vector<float> m_rX = {};
+    std::vector<float> m_rY = {};
+    std::vector<bool> m_isAir = {};
+    std::vector<bool> m_isWall = {};
 
-    vector<vector<int>> particlesInGrid = {};
+    std::vector<std::vector<int>> m_particlesInGrid = {};
 
-    float dt = 0.f;
+    float m_dt = 0.f;
 
-    ivec2 cellToCoord(int cell, int nx);
-    int coordToCell(ivec2 coord, int nx, int ny);
-    int posToCell(vec2 pos, int nx, int ny);
-    vec2 cellToPos(int cell, int nx, int ny);
-    vec2 coordToPos(ivec2 coord, int nx, int ny);
+    glm::ivec2 cellToCoord(int cell, int nx);
+    int coordToCell(glm::ivec2 coord, int nx, int ny);
+    int posToCell(glm::vec2 pos, int nx, int ny);
+    glm::vec2 cellToPos(int cell, int nx, int ny);
+    glm::vec2 coordToPos(glm::ivec2 coord, int nx, int ny);
 
-    void posToCoordAndDp(vec2 pos, int nx, int ny, ivec2& coord, vec2& dp);
+    void posToCoordAndDp(glm::vec2 pos, int nx, int ny, glm::ivec2& coord, glm::vec2& dp);
 
     void integrateParticles();
     void pushAppartParticles();
@@ -57,12 +52,12 @@ public:
     Solver(int partN, float radius, float h, int gridX, int gridY, float timestep = 0.015f);
 
     void updateFlip();
-    const vector<vec2>& getPos() { return partPos; };
-    const vector<vec2>& getVel() { return partVel; };
-    vector<vec4> getGrid(float width);
-    vector<vec4> getCells();
-    vector<vec4> getCellColors();
-    void updateObstacle(vec2 pos, vec2 vel, float radius);
+    const std::vector<glm::vec2>& getPos() { return m_partPos; };
+    const std::vector<glm::vec2>& getVel() { return m_partVel; };
+    std::vector<glm::vec4> getGrid(float width);
+    std::vector<glm::vec4> getCells();
+    std::vector<glm::vec4> getCellColors();
+    void updateObstacle(glm::vec2 pos, glm::vec2 vel, float radius);
 };
 
 #endif

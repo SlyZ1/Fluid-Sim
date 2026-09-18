@@ -1,12 +1,25 @@
 #include "shader_program.hpp"
 #include <fstream>
 #include <sstream>
+#include <GLFW/glfw3.h>
+
+namespace fs = std::filesystem;
+
+using namespace std;
 
 ShaderProgram::ShaderProgram() : m_shaderProgram(0) { }
-GLuint ShaderProgram::currentlyUsedProgram = 0;
+ShaderProgram::~ShaderProgram() { 
+    if (m_shaderProgram > 0 && glfwGetCurrentContext() != nullptr && glIsProgram(m_shaderProgram)){
+        glDeleteProgram(m_shaderProgram);
+        s_uniformCache.erase(m_shaderProgram);
+    }
+}
+GLuint ShaderProgram::s_currentlyUsedProgram = 0;
+unordered_map<GLuint, unordered_map<string, GLuint>> ShaderProgram::s_uniformCache = {};
 
 void ShaderProgram::create(){
     m_shaderProgram = glCreateProgram();
+    s_uniformCache[m_shaderProgram] = unordered_map<string, GLuint>();
 }
 
 // Extracts path from lines like : #pragma include "path"
@@ -16,7 +29,7 @@ fs::path ShaderProgram::extractPath(const string& line){
     return fs::path(line.substr(start, end - start));
 }
 
-string ShaderProgram::getShaderSource(const char* path){
+string ShaderProgram::getShaderSource(string path){
     ifstream file(path);
     stringstream ss;
     string line; 
@@ -47,7 +60,7 @@ string ShaderProgram::getShaderSource(const char* path){
     return ss.str();
 }
 
-void ShaderProgram::load(int type, const char *path){
+void ShaderProgram::load(int type, string path){
     m_types.push_back(type);
     m_paths.push_back(path);
 
@@ -138,7 +151,7 @@ void ShaderProgram::link(){
 
 void ShaderProgram::use() const {
     glUseProgram(m_shaderProgram);
-    currentlyUsedProgram = m_shaderProgram;
+    s_currentlyUsedProgram = m_shaderProgram;
 }
 
 void ShaderProgram::dispatch(GLuint x, GLuint y, GLuint z){
@@ -159,14 +172,21 @@ void ShaderProgram::indirectDispatch(GLuint buffer, int offset){
 }
 
 GLuint ShaderProgram::getVarLoc(const string& name){
-    if (currentlyUsedProgram == 0){
-        cerr << "Warning: trying to get uniform location of " << name << " while no shader program is currently used." << endl;
+    auto& progUniformCache = s_uniformCache[s_currentlyUsedProgram];
+    auto it = progUniformCache.find(name);
+    if (it != progUniformCache.end()){
+        return it->second;
     }
-    return glGetUniformLocation(currentlyUsedProgram, name.c_str());;
+    GLuint loc = glGetUniformLocation(s_currentlyUsedProgram, name.c_str());
+    progUniformCache[name] = loc;
+    return loc;
 }
 
-void ShaderProgram::destroy() const {
+void ShaderProgram::destroy() {
+    if (m_shaderProgram == 0) return;
     glDeleteProgram(m_shaderProgram);
+    s_uniformCache.erase(m_shaderProgram);
+    m_shaderProgram = 0;
 }
 
 unsigned int ShaderProgram::id() const {

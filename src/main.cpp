@@ -9,17 +9,16 @@
 #include "shader_program.hpp"
 #include "helpers/stats.hpp"
 #include "helpers/metrics.hpp"
-#include "solvers/solver.hpp"
 #include "solvers/solverGPU.hpp"
 #include "ui/ui.hpp"
-#include <omp.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 
 using namespace std;
+using namespace glm;
 
 int frameCount = 0;
-GLuint VBO, VAO, EBO = 0;
+GLuint VBO = 0, VAO = 0, EBO = 0;
 GLuint gridVBO = 0;
 GLuint posesVBO = 0;
 GLuint colorsVBO = 0;
@@ -39,11 +38,10 @@ ShaderProgram particleShader = {};
 ShaderProgram cumulativeParticleShader = {};
 ShaderProgram blurShader = {};
 ShaderProgram normalShader = {};
-ShaderProgram waterShader = {};
 ShaderProgram gridShader = {};
-shared_ptr<Camera> camera;
+ShaderProgram waterShader = {};
 shared_ptr<App> app;
-shared_ptr<Solver> solver;
+shared_ptr<Camera> camera;
 shared_ptr<SolverGPU> solverGPU;
 shared_ptr<UI> ui;
 
@@ -58,7 +56,7 @@ bool previousEnableObstacle = false;
 bool enableObstacle = false;
 
 bool paused = false;
-bool freeView = true;
+bool freeView = false;
 
 #ifdef _WIN32
 extern "C" {
@@ -159,11 +157,14 @@ void init(){
     glBindFramebuffer(GL_FRAMEBUFFER, blurredFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, blurredTex, 0);
 
-    float solverH = 2 * 2 * particleRadius;
-    solver = make_shared<Solver>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, 0.03f);
-
     glEnable(GL_DEPTH_TEST);
     
+    //solver = make_shared<Solver>(numParticle, particleRadius, solverH, app->width() / solverH, app->height() / solverH, 0.03f);
+    
+    camera = make_shared<Camera>(0.02f, 0.25f);
+    camera->resetMousePos(app->mouseX(), app->mouseY());
+    
+    float solverH = 2 * 2 * particleRadius;
     solverGPU = make_shared<SolverGPU>(
         numParticle, 
         particleRadius, 
@@ -173,14 +174,11 @@ void init(){
         app->height() * 0.5 / solverH, 
         0.05f
     );
-
-    camera = make_shared<Camera>(0.02f, 0.25f);
-    camera->resetMousePos(app->mouseX(), app->mouseY());
-
+    
     UIContext ctx = { app };
     ui = make_shared<UI>(ctx);
     ui->setStatsContext({ app, solverGPU });
-
+    
     cout << "Program started." << endl;
 }
 
@@ -355,10 +353,35 @@ void inputs(){
 
 void end(){
     glDeleteVertexArrays(1, &VAO);
+
     glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &gridVBO);
+    glDeleteBuffers(1, &posesVBO);
+    glDeleteBuffers(1, &colorsVBO);
+    glDeleteBuffers(1, &depthFBO);
+
+    glDeleteFramebuffers(1, &cumulativeDepthFBO);
+    glDeleteFramebuffers(1, &normalFBO);
+    glDeleteFramebuffers(1, &blurredFBO);
+
+    glDeleteTextures(1, &depthTex);
+    glDeleteTextures(1, &depthColorTex);
+    glDeleteTextures(1, &cumulativeDepthTex);
+    glDeleteTextures(1, &normalTex);
+    glDeleteTextures(1, &blurredTex);
+
     particleShader.destroy();
+    cumulativeParticleShader.destroy();
+    blurShader.destroy();
+    normalShader.destroy();
     gridShader.destroy();
-    app->terminate();
+    waterShader.destroy();
+
+    ui.reset();
+    camera.reset();
+    solverGPU.reset();
+
+    app.reset();
 }
 
 int main(){
@@ -367,17 +390,17 @@ int main(){
     {
         app->startFrame(frameCount);
         ui->render();
-
+        
         if (!paused){
             if (enableObstacle){
                 vec2 obstaclePos = vec2(app->mouseX() - app->width() * 0.5f, app->height() * 0.5f - app->mouseY());
                 vec2 obstacleVel = (obstaclePos - previousObstaclePos) / 0.03f;
                 if (!previousEnableObstacle) obstacleVel = vec2(0.f);
                 previousObstaclePos = obstaclePos;
-    
+                
                 solverGPU->updateObstacle(obstaclePos, obstacleVel, 10);
             }
-
+            
             for (int i = 0; i < iterations; i++)
                 solverGPU->updateFlip();
         }

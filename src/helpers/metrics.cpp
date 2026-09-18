@@ -1,5 +1,8 @@
 #include "metrics.hpp"
 
+#include <cmath>
+#include <GLFW/glfw3.h>
+
 void FPSCounter::update(){
     double currentTime = glfwGetTime();
     double deltaTime = currentTime - m_lastTime;

@@ -8,32 +8,30 @@
 
 #include "utils.hpp"
 
-using namespace std;
-
 using StatIndex = int;
 
 template<typename T>
 struct Stat {
-    string label;
+    std::string label;
     T value;
-    Stat(const string& l, T v) : label(l), value(v) {};
+    Stat(const std::string& l, T v) : label(l), value(v) {};
 };
 
 template<typename T>
 class StatsPrimitive {
     private:
-    vector<string> m_labels = {};
-    vector<T> m_values = {};
+    std::vector<std::string> m_labels = {};
+    std::vector<T> m_values = {};
 
     public:
-    StatIndex registerStat(const string& label){
+    StatIndex registerStat(const std::string& label){
         m_labels.push_back(label);
         m_values.push_back(T{});
         return (StatIndex)(numStats() - 1);
     };
 
-    vector<StatIndex> getSortPermutation() const {
-        vector<StatIndex> indices = vector<StatIndex>(numStats());
+    std::vector<StatIndex> getSortPermutation() const {
+        std::vector<StatIndex> indices = std::vector<StatIndex>(numStats());
         for (StatIndex i = 0; i < numStats(); i++)
             indices[i] = i;
         
@@ -58,8 +56,8 @@ class StatsPrimitive {
         };
     }
 
-    const vector<string>& getLabels() const { return m_labels; }
-    const vector<T>& getValues() const { return m_values; }
+    const std::vector<std::string>& getLabels() const { return m_labels; }
+    const std::vector<T>& getValues() const { return m_values; }
 };
 
 class Stats {
@@ -70,7 +68,7 @@ class Stats {
     const StatIndex totalTimeStatIndex = 0;
 
     public:
-    string name = "";
+    std::string name = "";
 
     Stats() {
         timers.registerStat("Total time");
@@ -81,9 +79,9 @@ class Stats {
         return timers.numStats() + counters.numStats() + storages.numStats();
     }
 
-    StatIndex registerTimer(const string& label)   { return timers.registerStat(label);   }
-    StatIndex registerCounter(const string& label) { return counters.registerStat(label); }
-    StatIndex registerStorage(const string& label) { return storages.registerStat(label); }
+    StatIndex registerTimer(const std::string& label)   { return timers.registerStat(label);   }
+    StatIndex registerCounter(const std::string& label) { return counters.registerStat(label); }
+    StatIndex registerStorage(const std::string& label) { return storages.registerStat(label); }
 
     void setTimer(StatIndex i, TimerValue value) {
         timers.set(totalTimeStatIndex, timers.get(totalTimeStatIndex).value + value - timers.get(i).value); 
@@ -105,15 +103,15 @@ class Stats {
 
 class IStatsProvider {
     protected:
-    shared_ptr<Stats> m_stats;
+    std::shared_ptr<Stats> m_stats;
 
     public:
-    IStatsProvider(string name) {
-        m_stats = make_shared<Stats>();
+    IStatsProvider(std::string name) {
+        m_stats = std::make_shared<Stats>();
         m_stats->name = name;
     };
     virtual ~IStatsProvider() {};
-    shared_ptr<Stats> getStats() const { return m_stats; }
+    std::shared_ptr<Stats> getStats() const { return m_stats; }
 };
 
 #endif

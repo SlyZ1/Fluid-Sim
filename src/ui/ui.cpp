@@ -2,6 +2,8 @@
 #include "ui_colors.hpp"
 #include <format>
 
+using namespace std;
+
 void UI::setStatsContext(const vector<shared_ptr<IStatsProvider>>& ctx){
     m_statsCtx = vector<shared_ptr<Stats>>(ctx.size());
     for (int i = 0; i < (int)ctx.size(); i++)

@@ -2,9 +2,7 @@
 #define METRICS_HPP
 
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <cmath>
-#include <iostream>
+#include <string>
 
 using CounterValue = int;
 using TimerValue = float;

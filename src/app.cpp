@@ -1,12 +1,27 @@
+#include "app.hpp"
+
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_impl_glfw.h>
-#include "app.hpp"
-#include <iostream>
+
 
 using namespace std;
+
+App::App() : IStatsProvider("App") {
+    for (int i = 0; i < GLFW_KEY_LAST + 1; i++)
+        m_wasPressed[i] = INT_MAX;
+}
+
+App::~App(){
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    glfwDestroyWindow(m_window);
+    glfwTerminate();
+}
 
 void framebuffer_size_callback(GLFWwindow*, int width, int height)
 {
@@ -14,6 +29,10 @@ void framebuffer_size_callback(GLFWwindow*, int width, int height)
 }
 
 void App::init(int width, int height, const char *name){
+#ifdef __linux__
+    // Prevent from mouse hidding issues 
+    glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+#endif
     if (!glfwInit())
     {
         cerr << "Failed to initialize GLFW" << endl;
@@ -99,26 +118,29 @@ bool App::keyPressed(int key) const {
     return glfwGetKey(m_window, key) == GLFW_PRESS || glfwGetMouseButton(m_window, key) == GLFW_PRESS;
 }
 
-bool App::keyPressedOnce(int key, int frame) const {
-    static int wasPressed[GLFW_KEY_LAST + 1] = {INT_MAX};
-
+bool App::keyPressedOnce(int key, int frame) {
     bool isPressed = glfwGetKey(m_window, key) == GLFW_PRESS;
 
-    if (isPressed && wasPressed[key] >= frame) {
-        wasPressed[key] = frame;
-        return true;
+    if (!isPressed){
+        m_wasPressed[key] = INT_MAX;
+        return false;
     }
-
-    if (!isPressed) {
-        wasPressed[key] = INT_MAX;
-    }
-
-    return false;
+    if (m_wasPressed[key] < frame) return false;
+    
+    m_wasPressed[key] = frame;
+    return true;
 }
 
 void App::toggleCursor(bool show){
     m_cursorHidden = !show;
-    glfwSetInputMode(m_window, GLFW_CURSOR, !show ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+    if (m_cursorHidden){
+        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        glfwPollEvents();
+        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+    else{
+        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
 }
 
 bool App::cursorIsHidden() const {
@@ -153,8 +175,4 @@ unsigned int App::height() const {
     int height;
     glfwGetWindowSize(m_window, nullptr, &height);
     return height;
-}
-
-void App::terminate() const {
-    glfwTerminate();
 }

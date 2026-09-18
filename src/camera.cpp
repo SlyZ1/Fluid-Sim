@@ -1,9 +1,10 @@
 #include "camera.hpp"
 #include <iostream>
-#include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
+#include <glm/gtc/matrix_transform.hpp>
 
 using namespace std;
+using namespace glm;
 
 vec3 Camera::lookDir(){
     vec2 radAngles = vec2(radians(m_angles.x), radians(m_angles.y));

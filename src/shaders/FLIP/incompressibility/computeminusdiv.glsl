@@ -18,7 +18,7 @@ uniform float h;
 void main(){
     int i = int(gl_GlobalInvocationID.x);
     int j = int(gl_GlobalInvocationID.y);
-    int k = int(gl_GlobalInvocationID.z);
+    int k = int(gl_GlobalInvocationID.z); 
     if (i >= gridX || j >= gridY || k >= gridZ) return;
         
     int cell = coordToCell(ivec3(i,j,k), gridX, gridY, gridZ);

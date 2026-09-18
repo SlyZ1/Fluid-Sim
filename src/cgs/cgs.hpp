@@ -1,11 +1,13 @@
 #ifndef CGS_HPP
 #define CGS_HPP
 
-#include <glad/glad.h>
 #include <vector>
-#include "../shader_program.hpp"
-#include "matrix_ops.hpp"
 #include <functional>
+#include <glad/glad.h>
+#include <memory>
+
+#include "matrix_ops.hpp"
+#include "../shader_program.hpp"
 
 struct DispatchParams {
     GLuint num_groups_x;
@@ -17,41 +19,46 @@ class CGS {
 private:
     int RTR_SCALAR_INDEX = 0;
     int RTR_NEW_SCALAR_INDEX = 1;
-    const int DTAD_SCALAR_INDEX = 2;
-    const int RTR0_VALUE_INDEX = 3;
-    const int MINUS_ONE_SCALAR_INDEX = 9;
-    const int NUM_SCALARS = 10;
-    bool tmp = false;
+    static constexpr int DTAD_SCALAR_INDEX = 2;
+    static constexpr int RTR0_VALUE_INDEX = 3;
+    static constexpr int MINUS_ONE_SCALAR_INDEX = 9;
+    static constexpr int NUM_SCALARS = 10;
 
-    int n;
-    GLuint ABuffer = 0;
-    GLuint bBuffer = 0;
-    GLuint ATBuffer = 0;
-    GLuint ATbBuffer = 0;
-    GLuint ATABuffer = 0;
+    int m_n = 0;
+    GLuint m_ABuffer = 0;
+    GLuint m_bBuffer = 0;
+    GLuint m_ATBuffer = 0;
+    GLuint m_ATbBuffer = 0;
+    GLuint m_ATABuffer = 0;
     
-    GLuint zeroBuffer = 0;
-    GLuint xBuffer = 0;
-    GLuint dBuffer = 0;
-    GLuint AdBuffer = 0;
-    GLuint rBuffer = 0;
-    GLuint scalarBuffer = 0;
-    GLuint indirectBuffer = 0;
-    vector<DispatchParams> dispatchParams = {};
-    ShaderProgram stopProg = {};
+    GLuint m_zeroBuffer = 0;
+    GLuint m_xBuffer = 0;
+    GLuint m_dBuffer = 0;
+    GLuint m_AdBuffer = 0;
+    GLuint m_rBuffer = 0;
+    GLuint m_scalarBuffer = 0;
+    GLuint m_indirectBuffer = 0;
+    std::vector<DispatchParams> m_dispatchParams = {};
+    ShaderProgram m_stopProg = {};
 
-    MatOps* matOps;
+    std::unique_ptr<MatOps> m_matOps;
 
     void initBuffers();
+    void deleteBuffers();
     void swap_rtr_indices();
 
 public:
-    CGS(){};
+    CGS();
+    ~CGS();
+
+    CGS(const CGS&) = delete;
+    CGS& operator=(const CGS&) = delete;
+
     void compute_ATA_ATb(GLuint AMatrixbuffer, GLuint bMatrixBuffer);
     void init(int n, GLuint ABuffer, GLuint bBuffer, GLuint xBuffer);
+    void reloadArgs(GLuint ABuffer, GLuint bBuffer, GLuint xBuffer);
     GLuint solve(int maxIter, float tol);
-    GLuint solve(int maxIter, float tol, function<void(GLuint, GLuint, GLuint, int, bool)> matVec, DispatchParams matVecParams);
-    GLuint solve(GLuint previousXBuffer, int maxIter, float tol, function<void(GLuint, GLuint, GLuint, int, bool)> matVec, DispatchParams matVecParams);
+    GLuint solve(int maxIter, float tol, std::function<void(GLuint, GLuint, GLuint, int, bool)> matVec, DispatchParams matVecParams, bool reuse=true);
 };
 
 #endif

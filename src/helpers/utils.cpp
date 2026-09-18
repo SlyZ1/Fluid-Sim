@@ -2,6 +2,9 @@
 #include <sstream>
 #include <iomanip>
 
+using namespace glm;
+using namespace std;
+
 string Utils::toString(const glm::vec2& v, int precision) {
     char buffer[64];
     snprintf(buffer, sizeof(buffer), "(%.*f, %.*f)", precision, v.x, precision, v.y);

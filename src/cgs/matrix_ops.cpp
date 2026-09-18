@@ -1,56 +1,63 @@
 #include "matrix_ops.hpp"
 
+using namespace std;
+
 MatOps::MatOps(){
-    mulProg.create();
-    mulProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/multiply.glsl");
-    mulProg.link();
+    m_mulProg.create();
+    m_mulProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/multiply.glsl");
+    m_mulProg.link();
     
-    transposeProg.create();
-    transposeProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/transpose.glsl");
-    transposeProg.link();
+    m_transposeProg.create();
+    m_transposeProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/transpose.glsl");
+    m_transposeProg.link();
     
-    matVecProg.create();
-    matVecProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/mat_vec.glsl");
-    matVecProg.link();
+    m_matVecProg.create();
+    m_matVecProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/mat_vec.glsl");
+    m_matVecProg.link();
     
-    saxpyProg.create();
-    saxpyProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/saxpy.glsl");
-    saxpyProg.link();
+    m_saxpyProg.create();
+    m_saxpyProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/saxpy.glsl");
+    m_saxpyProg.link();
     
-    dot1Prog.create();
-    dot1Prog.load(GL_COMPUTE_SHADER, "src/shaders/mat/dot1.glsl");
-    dot1Prog.link();
+    m_dot1Prog.create();
+    m_dot1Prog.load(GL_COMPUTE_SHADER, "src/shaders/mat/dot1.glsl");
+    m_dot1Prog.link();
     
-    dot2Prog.create();
-    dot2Prog.load(GL_COMPUTE_SHADER, "src/shaders/mat/dot2.glsl");
-    dot2Prog.link();
+    m_dot2Prog.create();
+    m_dot2Prog.load(GL_COMPUTE_SHADER, "src/shaders/mat/dot2.glsl");
+    m_dot2Prog.link();
 
-    copyProg.create();
-    copyProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/copy.glsl");
-    copyProg.link();
+    m_copyProg.create();
+    m_copyProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/copy.glsl");
+    m_copyProg.link();
 
-    resetScalarProg.create();
-    resetScalarProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/reset_scalar.glsl");
-    resetScalarProg.link();
+    m_resetScalarProg.create();
+    m_resetScalarProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/reset_scalar.glsl");
+    m_resetScalarProg.link();
 
-    glDeleteBuffers(1, &partialDotBuffer);
-    glGenBuffers(1, &partialDotBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, partialDotBuffer);
+    glDeleteBuffers(1, &m_partialDotBuffer);
+    glGenBuffers(1, &m_partialDotBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_partialDotBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 1024 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-    partialDotCapacity = 1024;
+    m_partialDotCapacity = 1024;
+}
+
+MatOps::~MatOps(){
+    glDeleteBuffers(1, &m_partialDotBuffer);
+    glDeleteBuffers(1, &m_alphaBuffer);
 }
 
 void MatOps::ensurePartialCapacity(int N){
     int needed = (N + 127) / 128;
-    if (needed <= partialDotCapacity) return;
+    if (needed <= m_partialDotCapacity) return;
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, partialDotBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_partialDotBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, needed * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-    partialDotCapacity = needed;
+    m_partialDotCapacity = needed;
 }
 
 void MatOps::multiply(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, bool dispatch){
-    mulProg.use();
+    m_mulProg.use();
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferB);
@@ -64,21 +71,21 @@ void MatOps::multiply(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N
 
 void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, int index){
     ensurePartialCapacity(N);
-    dot1Prog.use();
+    m_dot1Prog.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferB);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, partialDotBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_partialDotBuffer);
     glUniform1i(ShaderProgram::getVarLoc("N"), N);
 
-    dot1Prog.dispatch((N + 127) / 128);
+    m_dot1Prog.dispatch((N + 127) / 128);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    dot2Prog.use();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, partialDotBuffer);
+    m_dot2Prog.use();
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_partialDotBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferResult);
     glUniform1i(ShaderProgram::getVarLoc("numPartials"), (N + 127) / 128);
     glUniform3i(ShaderProgram::getVarLoc("indicies"), index, -1, -1);
-    dot2Prog.dispatch(1);
+    m_dot2Prog.dispatch(1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     
@@ -89,21 +96,21 @@ void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, int
 
 void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, glm::ivec3 indicies){
     ensurePartialCapacity(N);
-    dot1Prog.use();
+    m_dot1Prog.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferB);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, partialDotBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_partialDotBuffer);
     glUniform1i(ShaderProgram::getVarLoc("N"), N);
 
-    dot1Prog.dispatch((N + 127) / 128);
+    m_dot1Prog.dispatch((N + 127) / 128);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    dot2Prog.use();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, partialDotBuffer);
+    m_dot2Prog.use();
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_partialDotBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferResult);
     glUniform1i(ShaderProgram::getVarLoc("numPartials"), (N + 127) / 128);
     glUniform3i(ShaderProgram::getVarLoc("indicies"), indicies.x, indicies.y, indicies.z);
-    dot2Prog.dispatch(1);
+    m_dot2Prog.dispatch(1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     
@@ -115,17 +122,17 @@ void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, glm
 
 void MatOps::dotIndirect(GLuint bufferA, GLuint bufferB, GLuint bufferResult, GLuint indirectBuffer, int offset1, int offset2, int N, int index){
     ensurePartialCapacity(N);
-    dot1Prog.use();
+    m_dot1Prog.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferB);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, partialDotBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_partialDotBuffer);
     glUniform1i(ShaderProgram::getVarLoc("N"), N);
 
     ShaderProgram::indirectDispatch(indirectBuffer, offset1);
     ShaderProgram::indirectBarrier();
 
-    dot2Prog.use();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, partialDotBuffer);
+    m_dot2Prog.use();
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_partialDotBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferResult);
     glUniform1i(ShaderProgram::getVarLoc("numPartials"), (N + 127) / 128);
     glUniform3i(ShaderProgram::getVarLoc("indicies"), index, -1, -1);
@@ -136,7 +143,7 @@ void MatOps::dotIndirect(GLuint bufferA, GLuint bufferB, GLuint bufferResult, GL
 
 void MatOps::saxpy(GLuint bufferX, GLuint bufferY, GLuint bufferZ, 
                    GLuint bufferAlpha, int N, vector<int> alphaOperations, bool dispatch){
-    saxpyProg.use();
+    m_saxpyProg.use();
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferX);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferY);
@@ -151,18 +158,18 @@ void MatOps::saxpy(GLuint bufferX, GLuint bufferY, GLuint bufferZ,
 }
 
 void MatOps::saxpy(GLuint bufferX, GLuint bufferY, GLuint bufferZ, float alpha, int N, bool dispatch){
-    saxpyProg.use();
+    m_saxpyProg.use();
 
-    if (alphaBuffer == 0){
-        glGenBuffers(1, &alphaBuffer);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, alphaBuffer);
+    if (m_alphaBuffer == 0){
+        glGenBuffers(1, &m_alphaBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_alphaBuffer);
     }
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float), &alpha, GL_DYNAMIC_COPY);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferX);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferY);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bufferZ);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, alphaBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_alphaBuffer);
     glUniform1i(ShaderProgram::getVarLoc("N"), N);
     vector<int> alphaOperations(16, 0);
     alphaOperations[0] = 1;
@@ -174,7 +181,7 @@ void MatOps::saxpy(GLuint bufferX, GLuint bufferY, GLuint bufferZ, float alpha, 
 }
 
 void MatOps::copy(GLuint bufferX, GLuint bufferY, int N, bool dispatch){
-    copyProg.use();
+    m_copyProg.use();
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferX);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferY);
@@ -186,7 +193,7 @@ void MatOps::copy(GLuint bufferX, GLuint bufferY, int N, bool dispatch){
 }
 
 void MatOps::matVec(GLuint bufferA, GLuint bufferV, GLuint bufferResult, int N, bool dispatch){
-    matVecProg.use();
+    m_matVecProg.use();
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferV);
@@ -199,7 +206,7 @@ void MatOps::matVec(GLuint bufferA, GLuint bufferV, GLuint bufferResult, int N, 
 }
 
 void MatOps::transpose(GLuint bufferA, GLuint bufferResult, int N, bool dispatch){
-    transposeProg.use();
+    m_transposeProg.use();
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferResult);
