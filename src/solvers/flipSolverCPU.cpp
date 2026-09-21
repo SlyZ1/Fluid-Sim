@@ -1,4 +1,4 @@
-#include "solver.hpp"
+#include "flipSolverCPU.hpp"
 
 #include <omp.h>
 #include <iostream>
@@ -8,8 +8,8 @@
 using namespace std;
 using namespace glm;
 
-Solver::Solver(int partN, float radius, float h, int gridX, int gridY, float timestep) 
-: m_partN(partN), m_radius(radius), m_h(h), m_gridX(gridX), m_gridY(gridY), m_dt(timestep) {
+FlipSolverCPU::FlipSolverCPU(int partN, float radius, float h, int gridX, int gridY, float timestep) 
+: ISolver(nullptr), m_partN(partN), m_radius(radius), m_h(h), m_gridX(gridX), m_gridY(gridY), m_dt(timestep) {
     m_isWall = vector<bool>(gridX * gridY, false);
     m_velX = vector<float>((gridX + 1) * gridY, 0.f);
     m_velY = vector<float>(gridX * (gridY + 1), 0.f);
@@ -27,17 +27,17 @@ Solver::Solver(int partN, float radius, float h, int gridX, int gridY, float tim
     }
 }
 
-ivec2 Solver::cellToCoord(int cell, int nx){
+ivec2 FlipSolverCPU::cellToCoord(int cell, int nx){
     int column = cell % nx;
     int row = (cell - column) / nx;
     return ivec2(column, row);
 }
 
-int Solver::coordToCell(ivec2 coord, int nx, int ny){
+int FlipSolverCPU::coordToCell(ivec2 coord, int nx, int ny){
     return glm::clamp(coord.x % nx + nx * coord.y, 0, nx * ny - 1);
 }
 
-int Solver::posToCell(vec2 pos, int nx, int ny){
+int FlipSolverCPU::posToCell(vec2 pos, int nx, int ny){
     int column = (int)glm::floor(pos.x / m_h + (nx % 2) * 0.5f);
     int row = (int)glm::floor(pos.y / m_h + (ny % 2) * 0.5f);
     column += (int)glm::floor(nx * 0.5f);
@@ -45,25 +45,25 @@ int Solver::posToCell(vec2 pos, int nx, int ny){
     return coordToCell(ivec2(column, row), nx, ny);
 }
 
-vec2 Solver::cellToPos(int cell, int nx, int ny){
+vec2 FlipSolverCPU::cellToPos(int cell, int nx, int ny){
     ivec2 coord = cellToCoord(cell, nx);
     vec2 pos = ((vec2)coord - vec2(nx - 1, ny - 1) * 0.5f) * m_h;
     return pos;
 }
 
-vec2 Solver::coordToPos(ivec2 coord, int nx, int ny){
+vec2 FlipSolverCPU::coordToPos(ivec2 coord, int nx, int ny){
     vec2 pos = ((vec2)coord - vec2(nx - 1, ny - 1) * 0.5f) * m_h;
     return pos;
 }
 
-void Solver::posToCoordAndDp(vec2 pos, int nx, int ny, ivec2& coord, vec2& dp){
+void FlipSolverCPU::posToCoordAndDp(vec2 pos, int nx, int ny, ivec2& coord, vec2& dp){
     vec2 g = pos / m_h + vec2((nx % 2) * 0.5f, (ny % 2) * 0.5f);
     vec2 flooredG = glm::floor(g);
     coord = ivec2(flooredG) + ivec2((int)glm::floor(nx * 0.5f), (int)glm::floor(ny * 0.5f));
     dp = g - flooredG;
 }
 
-void Solver::integrateParticles(){
+void FlipSolverCPU::integrateParticles(){
     #pragma omp parallel for
     for (int i = 0; i < m_partN; i++)
     {
@@ -72,7 +72,7 @@ void Solver::integrateParticles(){
     }
 }
 
-void Solver::pushAppartParticles(){
+void FlipSolverCPU::pushAppartParticles(){
     int numCells = m_gridX * m_gridY;
 
     vector<int> numCellParticles(numCells, 0);
@@ -167,7 +167,7 @@ void Solver::pushAppartParticles(){
     }
 }
 
-void Solver::particleCollisions(){
+void FlipSolverCPU::particleCollisions(){
     vec2 minPos = cellToPos(0, m_gridX, m_gridY);
     vec2 maxPos = cellToPos(m_gridX * m_gridY - 1, m_gridX, m_gridY);
     #pragma omp parallel for
@@ -203,7 +203,7 @@ void Solver::particleCollisions(){
     }
 }
 
-void Solver::particlesToGrid(){
+void FlipSolverCPU::particlesToGrid(){
     m_isAir.clear();
     m_isAir = vector<bool>(m_gridX * m_gridY, true);
     m_rY.clear();
@@ -328,7 +328,7 @@ void Solver::particlesToGrid(){
     }
 }
 
-void Solver::solveIncompressibility(int iterations){
+void FlipSolverCPU::solveIncompressibility(int iterations){
     m_oldVelX = m_velX;
     m_oldVelY = m_velY;
     vector<ivec2> redCoords = {};
@@ -386,7 +386,7 @@ void Solver::solveIncompressibility(int iterations){
     }
 }
 
-void Solver::gridToParticles(){
+void FlipSolverCPU::gridToParticles(){
     #pragma omp parallel for
     for (int i = 0; i < m_partN; i++)
     {
@@ -463,7 +463,7 @@ void Solver::gridToParticles(){
 }
 
 
-void Solver::updateFlip(){
+void FlipSolverCPU::update(){
     integrateParticles();
     particleCollisions();
     pushAppartParticles();
@@ -474,7 +474,7 @@ void Solver::updateFlip(){
     gridToParticles();
 }
 
-vector<vec4> Solver::getGrid(float width){
+vector<vec4> FlipSolverCPU::getGrid(float width){
     vector<vec4> grid = {};
     for (int i = 0; i < m_gridX; i++)
     {
@@ -489,7 +489,7 @@ vector<vec4> Solver::getGrid(float width){
     return grid;
 }
 
-vector<vec4> Solver::getCells(){
+vector<vec4> FlipSolverCPU::getCells(){
     vector<vec4> cells = vector<vec4>(m_gridX * m_gridY, vec4(0.f));
     #pragma omp parallel for
     for (int cell = 0; cell < m_gridX * m_gridY; cell++)
@@ -499,7 +499,7 @@ vector<vec4> Solver::getCells(){
     return cells;
 }
 
-vector<vec4> Solver::getCellColors(){
+vector<vec4> FlipSolverCPU::getCellColors(){
     vector<vec4> colors = vector<vec4>(m_gridX * m_gridY, vec4(0,0,0,1));
     #pragma omp parallel for
     for (int x = 0; x < m_gridX; x++)
@@ -522,7 +522,7 @@ vector<vec4> Solver::getCellColors(){
     return colors;
 }
 
-void Solver::updateObstacle(vec2 pos, vec2 vel, float rad){
+void FlipSolverCPU::updateObstacle(vec2 pos, vec2 vel, float rad){
     m_obstaclePos = pos;
     m_obstacleVel = vel;
     m_obstacleRadius = rad;

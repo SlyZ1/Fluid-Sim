@@ -1,17 +1,40 @@
-#ifndef SOLVER_GPU_HPP
-#define SOLVER_GPU_HPP
+#ifndef FLIP_SOLVER_GPU_HPP
+#define FLIP_SOLVER_GPU_HPP
 
 #include <vector>
 #include <glm/glm.hpp>
 
+#include "solver.hpp"
 #include "../shader_program.hpp"
 #include "../helpers/metrics.hpp"
 #include "../helpers/stats.hpp"
 #include "../cgs/cgs.hpp"
 
-class SolverGPU : public IStatsProvider {
+#define FLIP_GPU_CONFIG_FIELDS(X) \
+    X(int, partN, 0) \
+    X(float, partRadius, 0) \
+    X(float, hPartRatio, 0) \
+    X(int, gridX, 0) \
+    X(int, gridY, 0) \
+    X(int, gridZ, 0) \
+    X(float, dt, 0.015f) 
+
+struct FlipSolverGPUConfig : public ISolverConfig {
+#define DECLARE_FIELDS(type, name, val) type name = val;
+    FLIP_GPU_CONFIG_FIELDS(DECLARE_FIELDS)
+#undef DECLARE_FIELDS
+
+    constexpr float h() const {
+        return 2 * partRadius * hPartRatio;
+    }
+
+    void drawImgui() const override;
+};
+
+class FlipSolverGPU : public IStatsProvider, public ISolver {
 private:
     CGS m_cgs = {};
+    FlipSolverGPUConfig m_config = {};
 
     // FLIP Buffers
     GLuint m_partPosBuffer = 0;
@@ -99,21 +122,11 @@ private:
     StatIndex m_incompressibilityStatIndex = 0;
     StatIndex m_g2pStatIndex = 0;
 
-    int m_partN = 0;
-
     glm::vec2 m_obstaclePos = glm::vec2(0.f);
     glm::vec2 m_obstacleVel = glm::vec2(0.f);
     float m_obstacleRadius = 0.f;
-
-    float m_radius = 0.f;
-    float m_h = 0.f;
-    int m_gridX = 0;
-    int m_gridY = 0;
-    int m_gridZ = 0;
     
     std::vector<std::vector<int>> m_particlesInGrid = {};
-
-    float m_dt = 0.f;
 
     glm::ivec3 cellToCoord(int cell, int nx, int ny);
     glm::vec3 cellToPos(int cell, int nx, int ny, int nz);
@@ -137,17 +150,17 @@ private:
     void gridToParticles();
 
 public:
-    SolverGPU(int partN, float radius, float h, int gridX, int gridY, int gridZ, float timestep = 0.015f);
-    ~SolverGPU() override;
+    FlipSolverGPU(FlipSolverGPUConfig config);
+    ~FlipSolverGPU() override;
 
-    SolverGPU(const SolverGPU&) = delete;
-    SolverGPU& operator=(const SolverGPU&) = delete;
+    FlipSolverGPU(const FlipSolverGPU&) = delete;
+    FlipSolverGPU& operator=(const FlipSolverGPU&) = delete;
 
-    void updateFlip();
+    void update() override;
     void updateObstacle(glm::vec2 pos, glm::vec2 vel, float radius);
     void reload();
 
-    void setDt(float newDt) { m_dt = newDt; };
+    void setDt(float newDt) { m_config.dt = newDt; };
 
     GLuint getPosBuffer() const { return m_partPosBuffer; };
     GLuint getVelBuffer() const { return m_partVelBuffer; };

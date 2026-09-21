@@ -12,7 +12,7 @@
 #include "helpers/metrics.hpp"
 #include "helpers/logger.hpp"
 
-#include "solvers/solverGPU.hpp"
+#include "solvers/flipSolverGPU.hpp"
 #include "ui/ui.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -45,7 +45,7 @@ ShaderProgram gridShader = {};
 ShaderProgram waterShader = {};
 shared_ptr<App> app;
 shared_ptr<Camera> camera;
-shared_ptr<SolverGPU> solverGPU;
+shared_ptr<FlipSolverGPU> flipSolverGPU;
 shared_ptr<UI> ui;
 
 vector<vec3> poses = { vec3(0,0,0), vec3(0.5f, 0.f, 0.f) };
@@ -166,20 +166,20 @@ void init(){
     camera = make_shared<Camera>(0.02f, 1.5f);
     camera->resetMousePos(app->mouseX(), app->mouseY());
     
-    float solverH = 2 * 2 * particleRadius;
-    solverGPU = make_shared<SolverGPU>(
-        numParticle, 
-        particleRadius, 
-        solverH, 
-        app->height() / solverH, 
-        app->height() / solverH, 
-        app->height() * 0.5 / solverH, 
-        0.05f
-    );
+    FlipSolverGPUConfig flipConfigGPU = FlipSolverGPUConfig();
+    flipConfigGPU.partN = numParticle;
+    flipConfigGPU.partRadius = particleRadius;
+    flipConfigGPU.hPartRatio = 2;
+    flipConfigGPU.gridX = 600 / flipConfigGPU.h();
+    flipConfigGPU.gridY = 600 / flipConfigGPU.h();
+    flipConfigGPU.gridZ = 300 / flipConfigGPU.h();
+    flipConfigGPU.dt = 0.05f;
+
+    flipSolverGPU = make_shared<FlipSolverGPU>(flipConfigGPU);
     
-    UIContext ctx = { app };
+    UIContext ctx = { app, flipSolverGPU };
     ui = make_shared<UI>(ctx);
-    ui->setStatsContext({ app, solverGPU });
+    ui->setStatsContext({ app, flipSolverGPU });
     
     Logger::logSuccess("Program started.", __LOG_DATA__);
 }
@@ -189,13 +189,13 @@ void render(){
 
     particleShader.use();
 
-    glBindBuffer(GL_ARRAY_BUFFER, solverGPU->getPosBuffer());
+    glBindBuffer(GL_ARRAY_BUFFER, flipSolverGPU->getPosBuffer());
 
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
     glVertexAttribDivisor(1, 1);
     glEnableVertexAttribArray(1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, solverGPU->getVelBuffer());
+    glBindBuffer(GL_ARRAY_BUFFER, flipSolverGPU->getVelBuffer());
 
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
     glVertexAttribDivisor(3, 1);
@@ -325,7 +325,7 @@ void inputs(){
     }
     
     if (app->keyPressedOnce(GLFW_KEY_ENTER, frameCount)){
-        solverGPU->reload();
+        flipSolverGPU->reload();
     }
 
     if (app->keyPressedOnce(GLFW_KEY_P, frameCount)){
@@ -335,7 +335,7 @@ void inputs(){
     if (app->keyPressedOnce(GLFW_KEY_RIGHT, frameCount)){
         if (paused){
             for (int i = 0; i < iterations; i++)
-                solverGPU->updateFlip();
+                flipSolverGPU->update();
         }
     }
     if (app->keyPressed(GLFW_MOUSE_BUTTON_LEFT)){
@@ -374,7 +374,7 @@ void end(){
 
     ui.reset();
     camera.reset();
-    solverGPU.reset();
+    flipSolverGPU.reset();
 
     app.reset();
 }
@@ -393,11 +393,11 @@ int main(){
                 if (!previousEnableObstacle) obstacleVel = vec2(0.f);
                 previousObstaclePos = obstaclePos;
                 
-                solverGPU->updateObstacle(obstaclePos, obstacleVel, 10);
+                flipSolverGPU->updateObstacle(obstaclePos, obstacleVel, 10);
             }
             
             for (int i = 0; i < iterations; i++)
-                solverGPU->updateFlip();
+                flipSolverGPU->update();
         }
         previousEnableObstacle = enableObstacle;
 
