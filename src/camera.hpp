@@ -2,6 +2,8 @@
 #define CAMERA_HPP
 #include <glm/glm.hpp>
 
+#include "app.hpp"
+
 struct CameraProperties {
     float fov;
     float aperture;
@@ -21,6 +23,9 @@ struct CameraMoveInputs {
 
 class Camera {
     private:
+        std::shared_ptr<App> m_app;
+
+        float m_fov = 0;
         float m_moveSensitivity = 0;
         float m_lookSensitivity = 0;
         glm::vec3 m_pos = glm::vec3(0, 2, 1000);
@@ -34,20 +39,23 @@ class Camera {
         CameraProperties m_camProps = { 50.0f, 0.0f, 1.0f };
 
     public:
-        Camera(float moveSensitivity, float lookSensitivity) 
-            : m_moveSensitivity(moveSensitivity), m_lookSensitivity(lookSensitivity) {
+        Camera(std::shared_ptr<App> app, float fov, float moveSensitivity, float lookSensitivity) 
+            : m_app(app), m_fov(fov), m_moveSensitivity(moveSensitivity), m_lookSensitivity(lookSensitivity) {
                 m_pos = glm::vec3(0.0f, 0.0f, 1000.0f);
             }
         void move(const CameraMoveInputs& inputs, float dt);
         void rotate(float mouseX, float mouseY, float dt);
         void resetMousePos(float mouseX, float mouseY);
-        glm::vec3 lookDir();
+        glm::vec3 lookDir() const;
         glm::vec3 position() const { return m_pos; }
         void setPosition(glm::vec3 newPos) { m_pos = newPos; }
         bool getIsMoving(int frame);
         void hasStoppedMoving() { m_isMoving = false; m_isLooking = false; }
         CameraProperties* getCameraProperties() { return &m_camProps; }
-        glm::mat4 viewMatrix();
+        float getFov() const {return m_fov;}
+        void setFov(float fov) {m_fov = fov;}
+        glm::mat4 viewMatrix() const;
+        glm::mat4 projectionMatrix() const;
 };
 
 #endif

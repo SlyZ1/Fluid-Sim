@@ -6,11 +6,13 @@
 #include "../app.hpp"
 #include "../helpers/stats.hpp"
 #include "../solvers/solver.hpp" 
+#include "../renderers/renderer.hpp" 
 
 
 struct UIContext {
     std::shared_ptr<App> app;
     std::shared_ptr<ISolver> solver;
+    std::shared_ptr<IRenderer> renderer;
 };
 
 class UI {

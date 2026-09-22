@@ -11,9 +11,10 @@ using namespace std;
 
 void FlipSolverGPUConfig::drawImgui() const {
 #define DRAW_FIELD(type, name, val) \
-    UI::Label(#name); \
-    type temp_##name = name; \
-    UIUtils::drawField(#name, temp_##name);
+        UI::Label(#name); \
+        type temp_##name = name; \
+        UIUtils::drawField(#name, temp_##name);
+
     FLIP_GPU_CONFIG_FIELDS(DRAW_FIELD)
 #undef DRAW_FIELD
 }
@@ -128,7 +129,7 @@ void FlipSolverGPU::loadCompute(ShaderProgram& prog, const std::string& path){
 }
 
 FlipSolverGPU::FlipSolverGPU(FlipSolverGPUConfig config) 
-: IStatsProvider("FLIP Solver"), ISolver(make_unique<FlipSolverGPUConfig>(move(config))), m_config(static_cast<FlipSolverGPUConfig&>(*m_baseConfig)) {
+: IParticleSolver(make_unique<FlipSolverGPUConfig>(move(config)), "FLIP GPU Solver"), m_config(static_cast<FlipSolverGPUConfig&>(*m_baseConfig)) {
     m_integrationStatIndex        = m_stats->registerTimer("Integration");
     m_pushAppartStatIndex         = m_stats->registerTimer("Push Appart");
     m_collisionStatIndex          = m_stats->registerTimer("Collision");

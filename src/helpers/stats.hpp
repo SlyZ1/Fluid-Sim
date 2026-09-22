@@ -9,6 +9,9 @@
 #include "utils.hpp"
 
 using StatIndex = int;
+using CounterValue = int;
+using TimerValue = float;
+using StorageValue = int;
 
 template<typename T>
 struct Stat {

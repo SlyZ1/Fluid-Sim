@@ -6,7 +6,7 @@
 using namespace std;
 using namespace glm;
 
-vec3 Camera::lookDir(){
+vec3 Camera::lookDir() const {
     vec2 radAngles = vec2(radians(m_angles.x), radians(m_angles.y));
     vec3 lookDir = vec3(- sin(radAngles.x) * cos(radAngles.y), sin(radAngles.y), - cos(radAngles.x) * cos(radAngles.y));
     return normalize(lookDir);
@@ -51,8 +51,12 @@ bool Camera::getIsMoving(int frame){
     return frame - m_lastMovingFrame < 10; 
 }
 
-mat4 Camera::viewMatrix(){
+mat4 Camera::viewMatrix() const {
     vec3 forward = lookDir();
     vec3 worldUp = abs(forward.y) < 0.999f ? vec3(0,1,0) : vec3(0,0,1);
     return glm::lookAt(m_pos, m_pos + forward, worldUp);
+}
+
+mat4 Camera::projectionMatrix() const {
+    return glm::perspective(radians(m_fov), (float)m_app->width() / m_app->height(), 0.1f, 20000.0f);
 }

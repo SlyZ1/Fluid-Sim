@@ -226,7 +226,9 @@ void UI::renderParams(){
     } EndCustomHeader();
 
     if (BeginCustomHeader("Renderer")){
+        BeginTwoColumnLayout();
 
+        EndTwoColumnLayout();
         ImGui::TreePop();
     } EndCustomHeader();
 

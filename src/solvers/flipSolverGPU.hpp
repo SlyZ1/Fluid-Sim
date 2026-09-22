@@ -10,18 +10,19 @@
 #include "../helpers/stats.hpp"
 #include "../cgs/cgs.hpp"
 
-#define FLIP_GPU_CONFIG_FIELDS(X) \
-    X(int, partN, 0) \
-    X(float, partRadius, 0) \
-    X(float, hPartRatio, 0) \
-    X(int, gridX, 0) \
-    X(int, gridY, 0) \
-    X(int, gridZ, 0) \
-    X(float, dt, 0.015f) 
+#define FLIP_GPU_SPECIFIC_CONFIG_FIELDS(X) \
+    X(float, hPartRatio, 2) \
+    X(int, gridX, 50) \
+    X(int, gridY, 50) \
+    X(int, gridZ, 50)
 
-struct FlipSolverGPUConfig : public ISolverConfig {
+#define FLIP_GPU_CONFIG_FIELDS(X) \
+    PARTICLE_CONFIG_FIELDS(X) \
+    FLIP_GPU_SPECIFIC_CONFIG_FIELDS(X)
+
+struct FlipSolverGPUConfig : public IParticleSolverConfig {
 #define DECLARE_FIELDS(type, name, val) type name = val;
-    FLIP_GPU_CONFIG_FIELDS(DECLARE_FIELDS)
+    FLIP_GPU_SPECIFIC_CONFIG_FIELDS(DECLARE_FIELDS)
 #undef DECLARE_FIELDS
 
     constexpr float h() const {
@@ -31,7 +32,7 @@ struct FlipSolverGPUConfig : public ISolverConfig {
     void drawImgui() const override;
 };
 
-class FlipSolverGPU : public IStatsProvider, public ISolver {
+class FlipSolverGPU : public IParticleSolver {
 private:
     CGS m_cgs = {};
     FlipSolverGPUConfig m_config = {};
@@ -157,13 +158,11 @@ public:
     FlipSolverGPU& operator=(const FlipSolverGPU&) = delete;
 
     void update() override;
+    void reload() override;
+    GLuint getPosBuffer() const override { return m_partPosBuffer; };
+    GLuint getVelBuffer() const override { return m_partVelBuffer; };
+
     void updateObstacle(glm::vec2 pos, glm::vec2 vel, float radius);
-    void reload();
-
-    void setDt(float newDt) { m_config.dt = newDt; };
-
-    GLuint getPosBuffer() const { return m_partPosBuffer; };
-    GLuint getVelBuffer() const { return m_partVelBuffer; };
 };
 
 #endif
