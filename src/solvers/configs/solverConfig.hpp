@@ -3,11 +3,10 @@
 
 #include <memory>
 
-class ISolverConfig {
+class ISolverConfig { 
 public:
     ISolverConfig() {};
     virtual ~ISolverConfig() = default;
-    virtual void drawImgui() = 0; 
     virtual std::unique_ptr<ISolverConfig> clone() const = 0; 
 };
 

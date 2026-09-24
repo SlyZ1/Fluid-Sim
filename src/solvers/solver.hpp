@@ -6,6 +6,7 @@
 
 #include "configs/solverConfig.hpp"
 #include "../helpers/stats.hpp"
+#include "solverVisitor.hpp"
 
 class ISolver : public IStatsProvider {
 protected:
@@ -15,6 +16,7 @@ public:
     ISolver(std::unique_ptr<ISolverConfig> config, const std::string& statsName) 
     : IStatsProvider(statsName), m_baseConfig(std::move(config)) {};
     virtual ~ISolver() = default;
+    virtual void accept(const ISolverVisitor& visitor) = 0;
     virtual void update() = 0;
     virtual void reload() = 0;
     virtual GLuint getPosBuffer() const = 0;

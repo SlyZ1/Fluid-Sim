@@ -1,10 +1,12 @@
 #include "ui.hpp" 
-#include "ui_colors.hpp"
+#include "colorsUI.hpp"
 #include <format>
 
 #include "../solvers/flipSolverGPU.hpp"
 
 using namespace std;
+
+UI::UI(UIContext ctx) : m_ctx(std::move(ctx)) {}
 
 void UI::setStatsContext(const vector<weak_ptr<IStatsProvider>>& ctx){
     m_statsCtx = vector<weak_ptr<Stats>>(ctx.size());
@@ -14,102 +16,17 @@ void UI::setStatsContext(const vector<weak_ptr<IStatsProvider>>& ctx){
     }
 }
 
-
-// ----------------------------------------- USEFUL FUNCS -----------------------------------------
-
-void UI::TextWithShadow(const char* text, ImVec4 textColor, ImVec4 shadowColor, ImVec2 offset) {
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-    float rowHeight = ImGui::GetTextLineHeightWithSpacing();
-    float textHeight = ImGui::GetTextLineHeight();
-
-    pos.y += (rowHeight - textHeight) * 0.5f;
-    ImDrawList* draw = ImGui::GetWindowDrawList();
-    
-    draw->AddText(ImVec2(pos.x + offset.x, pos.y + offset.y), ImGui::GetColorU32(shadowColor), text);
-    draw->AddText(pos, ImGui::GetColorU32(textColor), text);
-    
-    ImVec2 textSize = ImGui::CalcTextSize(text);
-    ImGui::Dummy(textSize);
-}
-
-void UI::renderToolTip(const string& tip) {
-    if (ImGui::IsItemHovered())
-    {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(300.0f);
-        ImGui::TextUnformatted(tip.c_str());
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
-
-void UI::Label(const char* label, const string& desc, function<void(void)> customWidget, float widgetSize)
-{
-    ImGui::TableNextRow();
-    ImGui::TableSetColumnIndex(0);
-    TextWithShadow(label, ImVec4(1,1,1,1), ImVec4(0.05f,0.05f,0.05f,0.7f), ImVec2(1,1));
-    if (!desc.empty())
-        renderToolTip(desc); 
-    if (customWidget != nullptr){
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - widgetSize);
-        customWidget();
-    }
-    ImGui::TableSetColumnIndex(1);
-    ImGui::SetNextItemWidth(-FLT_MIN); 
-}
-
-void UI::AlignInputToRight(const char* input) {
-    auto posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(input).x 
-    - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
-    if(posX > ImGui::GetCursorPosX())
-        ImGui::SetCursorPosX(posX);
-}
-
-void UI::BeginTwoColumnLayout(float columnRatio)
-{
-    float availWidth = ImGui::GetContentRegionAvail().x;
-    float labelWidth = std::max(availWidth * columnRatio, 120.0f);
-    ImGui::BeginTable("##layout", 2, ImGuiTableFlags_SizingStretchProp);
-    ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, labelWidth);
-    ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
-}
-
-void UI::EndTwoColumnLayout()
-{
-    ImGui::EndTable();
-}
-
-bool UI::BeginCustomHeader(const string& name) {
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, UIColors::fgColor);
-    ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0.0f);
-    ImGui::BeginChild((name + "_group").c_str(), ImVec2(-FLT_MIN, 0), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysUseWindowPadding);
-    bool open = ImGui::TreeNodeEx(name.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth);
-    if (open){
-        ImGui::Spacing();
-        ImGui::Spacing();
-    }
-    return open;
-}
-
-void UI::EndCustomHeader() {
-    ImGui::EndChild();
-    ImGui::PopStyleVar(1);
-    ImGui::PopStyleColor(1);
-}
-
-
 // ----------------------------------------- STATS -----------------------------------------
 
 void UI::drawTimers(StatsPrimitive<float> timers){
     Stat<TimerValue> totalTimeStat = timers.get(0);
     if (timers.numStats() <= 2){
-        BeginTwoColumnLayout();
-        Label(totalTimeStat.label.c_str());
+        UtilsUI::BeginTwoColumnLayout();
+        UtilsUI::Label(totalTimeStat.label.c_str());
         string text = Utils::formatFloat(totalTimeStat.value, 2) + "ms";
-        AlignInputToRight(text.c_str());
+        UtilsUI::AlignInputToRight(text.c_str());
         ImGui::Text("%s", text.c_str());
-        EndTwoColumnLayout();
+        UtilsUI::EndTwoColumnLayout();
     }
     else {
         ImGui::Indent();
@@ -117,21 +34,21 @@ void UI::drawTimers(StatsPrimitive<float> timers){
         string headerName = "Latencies: " + Utils::formatFloat(totalTimeStat.value, 2) + "ms###latencies";
         if (!ImGui::CollapsingHeader(headerName.c_str())) { ImGui::Unindent(); return; }
 
-        BeginTwoColumnLayout();
+        UtilsUI::BeginTwoColumnLayout();
         vector<StatIndex> timerPermutation = timers.getSortPermutation();
         float totalStatTime = timers.get(timerPermutation[0]).value;
         for (const StatIndex& i : timerPermutation)
         {
             if (i == 0) continue;
             Stat<TimerValue> stat = timers.get(i);
-            Label(stat.label.c_str());
+            UtilsUI::Label(stat.label.c_str());
             string percentage = " (" + to_string(glm::clamp((int)(100 * stat.value / totalStatTime), 0, 100)) + "%)";
             if (i == timerPermutation[0]) percentage = "";
             string text = Utils::formatFloat(stat.value, 2) + "ms" + percentage;
-            AlignInputToRight(text.c_str());
+            UtilsUI::AlignInputToRight(text.c_str());
             ImGui::Text("%s", text.c_str());
         }
-        EndTwoColumnLayout();
+        UtilsUI::EndTwoColumnLayout();
         ImGui::Unindent();
     }
 }
@@ -142,16 +59,16 @@ void UI::drawCounters(StatsPrimitive<int> counters){
         if (!ImGui::CollapsingHeader("Counters")) { ImGui::Unindent(); return; }
     }
 
-    BeginTwoColumnLayout();
+    UtilsUI::BeginTwoColumnLayout();
     for (StatIndex i = 0; i < counters.numStats(); i++)
     {
         Stat<CounterValue> stat = counters.get(i);
-        Label(stat.label.c_str());
+        UtilsUI::Label(stat.label.c_str());
         string text = stat.value >= 10000 ? Utils::formatFloat(stat.value, 2, true) : to_string(stat.value);
-        AlignInputToRight(text.c_str());
+        UtilsUI::AlignInputToRight(text.c_str());
         ImGui::Text("%s", text.c_str());
     }
-    EndTwoColumnLayout();
+    UtilsUI::EndTwoColumnLayout();
 
     if (counters.numStats() > 1) ImGui::Unindent();
 }
@@ -162,17 +79,17 @@ void UI::drawStorages(StatsPrimitive<int> storages){
         if (!ImGui::CollapsingHeader("Storages")) { ImGui::Unindent(); return; }
     }
 
-    BeginTwoColumnLayout();
+    UtilsUI::BeginTwoColumnLayout();
     for (StatIndex i = 0; i < storages.numStats(); i++)
     {
         Stat<StorageValue> stat = storages.get(i);
-        Label(stat.label.c_str());
+        UtilsUI::Label(stat.label.c_str());
         string suffix = Metrics::storageSuffix(stat.value);
         string text = to_string(stat.value) + suffix;
-        AlignInputToRight(text.c_str());
+        UtilsUI::AlignInputToRight(text.c_str());
         ImGui::Text("%s", text.c_str());
     }
-    EndTwoColumnLayout();
+    UtilsUI::EndTwoColumnLayout();
 
     if (storages.numStats() > 1) ImGui::Unindent();
 }
@@ -213,32 +130,30 @@ void UI::renderParams(){
     ImGui::BeginChild("Parameters", ImVec2(-FLT_MIN, -FLT_MIN), ImGuiChildFlags_Borders);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarRounding, 6.0f);
-    ImGui::PushStyleColor(ImGuiCol_Border, UIColors::lightBlueBorder);
+    ImGui::PushStyleColor(ImGuiCol_Border, ColorsUI::lightBlueBorder);
     ImGui::BeginChild("Scrollable Parameters", ImVec2(-FLT_MIN, -padding), ImGuiChildFlags_None, ImGuiWindowFlags_AlwaysVerticalScrollbar);
 
-    if (BeginCustomHeader("Simulation")){
+    if (UtilsUI::BeginCustomHeader("Simulation")){
         
         ImGui::TreePop();
-    } EndCustomHeader();
+    } UtilsUI::EndCustomHeader();
 
-    if (BeginCustomHeader("Solver")){
-        BeginTwoColumnLayout();
+    if (UtilsUI::BeginCustomHeader("Solver")){
         if (auto solver = m_ctx.solver.lock()){
-            solver->getDraftConfig().drawImgui();
-            EndTwoColumnLayout();
+            solver->accept(solverUI);
             ImGui::Dummy(ImVec2(0, 5));
             if (ImGui::Button("Apply Changes", ImVec2(-FLT_MIN, 20)))
                 solver->applyDraftConfig();
         }
         ImGui::TreePop();
-    } EndCustomHeader();
+    } UtilsUI::EndCustomHeader();
 
-    if (BeginCustomHeader("Renderer")){
-        BeginTwoColumnLayout();
+    if (UtilsUI::BeginCustomHeader("Renderer")){
+        UtilsUI::BeginTwoColumnLayout();
 
-        EndTwoColumnLayout();
+        UtilsUI::EndTwoColumnLayout();
         ImGui::TreePop();
-    } EndCustomHeader();
+    } UtilsUI::EndCustomHeader();
 
     ImGui::EndChild();
     ImGui::PopStyleColor(1);
@@ -253,16 +168,16 @@ void UI::render(){
     float viewPortVerticalPos = ImGui::GetMainViewport()->WorkPos.y;
     float viewPortVerticalSize = ImGui::GetMainViewport()->WorkSize.y;
 
-    ImGui::PushStyleColor(ImGuiCol_Header, UIColors::mgColor);
-    ImGui::PushStyleColor(ImGuiCol_TitleBg, UIColors::mgColor);
-    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, UIColors::mgColor);
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, UIColors::mgColor);
+    ImGui::PushStyleColor(ImGuiCol_Header, ColorsUI::mgColor);
+    ImGui::PushStyleColor(ImGuiCol_TitleBg, ColorsUI::mgColor);
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ColorsUI::mgColor);
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ColorsUI::mgColor);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 3.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 0.0f);
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, UIColors::fgColor);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorsUI::fgColor);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f);
 
         renderStats();
@@ -270,8 +185,8 @@ void UI::render(){
         ImGui::PopStyleColor(1);
         ImGui::PopStyleVar(1);
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, UIColors::bgColor);
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, UIColors::mgColor);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorsUI::bgColor);
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ColorsUI::mgColor);
         ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.1f, 0.1f, 0.1f, 0.0f));
         ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.1f, 0.1f, 0.1f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6.0f);

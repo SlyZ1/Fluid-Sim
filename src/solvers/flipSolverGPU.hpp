@@ -139,6 +139,7 @@ public:
     FlipSolverGPU(const FlipSolverGPU&) = delete;
     FlipSolverGPU& operator=(const FlipSolverGPU&) = delete;
 
+    void accept(const ISolverVisitor& visitor) override { visitor.visit(*this); }
     void update() override;
     void reload() override;
     GLuint getPosBuffer() const override { return m_partPosBuffer; };

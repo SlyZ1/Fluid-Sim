@@ -7,36 +7,39 @@
 
 class FlipSolverCPUConfig : public IParticleSolverConfig {
 protected:
-    float m_hPartRatio = 2;
-    int m_gridX = 1;
-    int m_gridY = 1;
+    float m_partPerH = 2;
     float m_overrelaxation = 1.9f;
+    glm::vec2 m_domainSize = glm::vec2(1.0f);
 
 public:
     FlipSolverCPUConfig() : IParticleSolverConfig() {}
-    FlipSolverCPUConfig(int partN, float partRadius, float dt, float hPartRatio, int overrelaxation) 
-    : IParticleSolverConfig(partN, partRadius, dt), m_hPartRatio(hPartRatio), m_overrelaxation(overrelaxation) {}
+    FlipSolverCPUConfig(int partN, float partRadius, float dt, float partPerH, int overrelaxation, glm::vec2 domainSize) 
+    : IParticleSolverConfig(partN, partRadius, dt), m_partPerH(partPerH), m_overrelaxation(overrelaxation), m_domainSize(domainSize) {}
     ~FlipSolverCPUConfig() override = default;
 
-    void drawImgui() override; 
     std::unique_ptr<ISolverConfig> clone() const override; 
 
-    constexpr float getH() const {
-        return 2 * m_partRadius * m_hPartRatio;
-    }
-
-    constexpr float getDensity() const {
-        return m_hPartRatio * m_hPartRatio;
-    }
-
-    void setDimensions(glm::vec2 dim){
-        m_gridX = floor(dim.x / getH());
-        m_gridY = floor(dim.y / getH());
-    }
-
-    int getGridX() const { return m_gridX; } 
-    int getGridY() const { return m_gridY; } 
+    float getH() const { return 2 * m_partRadius * m_partPerH; }
+    float getDensity() const { return m_partPerH * m_partPerH * m_partPerH; }
+    
+    float getPartPerH() const { return m_partPerH; }
+    void setPartPerH(float partPerH) { m_partPerH = std::max(partPerH, 1.0f); }
+    
     float getOverrelaxation() const { return m_overrelaxation; }
+    void setOverrelaxation(float overrelaxation) { m_overrelaxation = glm::clamp(overrelaxation, 1.0f, 2.0f); }
+
+    glm::vec2 getDomainSize() const { return m_domainSize; }
+    void setDomainSize(glm::vec2 domainSize) { m_domainSize = glm::max(domainSize, 0.f); }
+
+    glm::ivec2 getGridDim() const {
+        float h = getH();
+        return glm::ivec2(
+            glm::max(1, (int)glm::floor(m_domainSize.x / h)),
+            glm::max(1, (int)glm::floor(m_domainSize.y / h))
+        );
+    }
+    int getGridX() const { return getGridDim().x; } 
+    int getGridY() const { return getGridDim().y; }
 };
 
 #endif

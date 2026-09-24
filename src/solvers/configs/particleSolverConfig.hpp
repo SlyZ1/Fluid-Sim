@@ -15,12 +15,16 @@ public:
     : ISolverConfig(), m_partN(partN), m_partRadius(partRadius), m_dt(dt) {}
     virtual ~IParticleSolverConfig() override = default;
 
-    virtual void drawImgui() override;
-    virtual std::unique_ptr<ISolverConfig> clone() const override;
+    virtual std::unique_ptr<ISolverConfig> clone() const override { return std::make_unique<IParticleSolverConfig>(*this); }
 
     int getPartN() const { return m_partN; }
+    void setPartN(int partN) { m_partN = partN; }
+    
     float getPartRadius() const { return m_partRadius; }
+    void setPartRadius(float partRadius) { m_partRadius = partRadius; }
+
     float getDt() const { return m_dt; }
+    void setDt(float dt) { m_dt = dt; }
 };
 
 #endif

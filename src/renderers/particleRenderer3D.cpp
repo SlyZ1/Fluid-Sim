@@ -5,7 +5,7 @@
 using namespace std;
 using namespace glm;
 
-string ParticleRenderer3D::s_shadersPath = "src/shaders/renderers/particle3D";
+string ParticleRenderer3D::s_shadersPath = "src/shaders/renderers/particle";
 
 ParticleRenderer3D::ParticleRenderer3D(weak_ptr<IParticleSolver> solver, weak_ptr<Camera> camera) 
 : IRenderer(), m_solver(solver), m_camera(camera) {

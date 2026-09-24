@@ -58,13 +58,12 @@ void init(){
     camera = make_shared<Camera>(app, 60.0f, 0.02f, 1.5f);
     camera->resetMousePos(app->mouseX(), app->mouseY());
     
-    FlipSolverGPUConfig flipConfigGPU = FlipSolverGPUConfig(
-        (int)1e5,
-        1.5f,
-        0.05f,
-        2
-    );
-    flipConfigGPU.setDimensions(vec3(600, 600, 300));
+    FlipSolverGPUConfig flipConfigGPU = FlipSolverGPUConfig();
+    flipConfigGPU.setPartN((int)1e5);
+    flipConfigGPU.setDt(0.05f);
+    flipConfigGPU.setPartPerH(2.0f);
+    flipConfigGPU.setDomainSize(vec3(1000, 1000, 500));
+    flipConfigGPU.setPartRadius(1.5f);
     
     solverManager = make_unique<SolverManager>();
     weak_ptr<FlipSolverGPU> typedSolver = solverManager->instantiate(flipConfigGPU);

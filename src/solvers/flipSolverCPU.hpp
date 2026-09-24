@@ -54,6 +54,7 @@ public:
     FlipSolverCPU(const FlipSolverCPU&) = delete;
     FlipSolverCPU& operator=(const FlipSolverCPU&) = delete;
 
+    void accept(const ISolverVisitor& visitor) override { visitor.visit(*this); }
     void update() override;
     void reload() override;
     GLuint getPosBuffer() const override;
