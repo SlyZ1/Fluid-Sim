@@ -6,10 +6,12 @@
 
 using namespace std;
 
-void UI::setStatsContext(const vector<shared_ptr<IStatsProvider>>& ctx){
-    m_statsCtx = vector<shared_ptr<Stats>>(ctx.size());
-    for (int i = 0; i < (int)ctx.size(); i++)
-        m_statsCtx[i] = ctx[i]->getStats(); 
+void UI::setStatsContext(const vector<weak_ptr<IStatsProvider>>& ctx){
+    m_statsCtx = vector<weak_ptr<Stats>>(ctx.size());
+    for (int i = 0; i < (int)ctx.size(); i++){
+        if (auto stats = ctx[i].lock()) 
+            m_statsCtx[i] = stats->getStats();
+    }
 }
 
 
@@ -185,8 +187,11 @@ void UI::renderStats(){
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x, ImGui::GetMainViewport()->WorkPos.y), ImGuiCond_Always, ImVec2(1, 0));
     ImGui::SetNextWindowSize(ImVec2(270.f, 0.f));
     if (ImGui::Begin("Stats", nullptr, flags)) {
-        for (const shared_ptr<Stats>& stats : m_statsCtx)
+        for (const weak_ptr<Stats>& statsPtr : m_statsCtx)
         {
+            auto stats = statsPtr.lock();
+            if (!stats) return;
+
             if (ImGui::CollapsingHeader(stats->name.c_str())) {
                 drawTimers(stats->getTimers());
                 drawCounters(stats->getCounters());
@@ -218,10 +223,13 @@ void UI::renderParams(){
 
     if (BeginCustomHeader("Solver")){
         BeginTwoColumnLayout();
-        ImGui::BeginDisabled();
-        m_ctx.solver->getConfig().drawImgui();
-        ImGui::EndDisabled();
-        EndTwoColumnLayout();
+        if (auto solver = m_ctx.solver.lock()){
+            solver->getDraftConfig().drawImgui();
+            EndTwoColumnLayout();
+            ImGui::Dummy(ImVec2(0, 5));
+            if (ImGui::Button("Apply Changes", ImVec2(-FLT_MIN, 20)))
+                solver->applyDraftConfig();
+        }
         ImGui::TreePop();
     } EndCustomHeader();
 

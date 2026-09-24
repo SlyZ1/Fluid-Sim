@@ -1,0 +1,1 @@
+cmake --build build && prime-run ./myprogram

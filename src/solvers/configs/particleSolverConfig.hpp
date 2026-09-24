@@ -1,0 +1,26 @@
+#ifndef PARTICLE_SOLVER_CONFIG_HPP
+#define PARTICLE_SOLVER_CONFIG_HPP
+
+#include "solverConfig.hpp"
+
+class IParticleSolverConfig : public ISolverConfig {
+protected:
+    int m_partN = 0;
+    float m_partRadius = 1;
+    float m_dt = 0.015f;
+
+public:
+    IParticleSolverConfig() : ISolverConfig() {}
+    IParticleSolverConfig(int partN, float partRadius, float dt) 
+    : ISolverConfig(), m_partN(partN), m_partRadius(partRadius), m_dt(dt) {}
+    virtual ~IParticleSolverConfig() override = default;
+
+    virtual void drawImgui() override;
+    virtual std::unique_ptr<ISolverConfig> clone() const override;
+
+    int getPartN() const { return m_partN; }
+    float getPartRadius() const { return m_partRadius; }
+    float getDt() const { return m_dt; }
+};
+
+#endif

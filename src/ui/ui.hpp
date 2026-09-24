@@ -1,5 +1,5 @@
 #ifndef UI_HPP
-#define UI_HPP
+#define UI_HPP 
 
 #include <type_traits>
 
@@ -11,14 +11,14 @@
 
 struct UIContext {
     std::shared_ptr<App> app;
-    std::shared_ptr<ISolver> solver;
-    std::shared_ptr<IRenderer> renderer;
+    std::weak_ptr<ISolver> solver;
+    std::weak_ptr<IRenderer> renderer;
 };
 
 class UI {
 private:
     UIContext m_ctx = {};
-    std::vector<std::shared_ptr<Stats>> m_statsCtx = {};
+    std::vector<std::weak_ptr<Stats>> m_statsCtx = {};
 
     // Useful functions
     static void TextWithShadow(
@@ -57,7 +57,7 @@ private:
 
 public:
     UI(UIContext ctx) : m_ctx(std::move(ctx)) {};
-    void setStatsContext(const std::vector<std::shared_ptr<IStatsProvider>>& ctx);
+    void setStatsContext(const std::vector<std::weak_ptr<IStatsProvider>>& ctx);
 
     static void Label(
         const char* label, 

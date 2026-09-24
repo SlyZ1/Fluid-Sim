@@ -4,14 +4,18 @@
 #include "renderer.hpp"
 #include "../shader_program.hpp"
 #include "../camera.hpp"
+#include "../solvers/particleSolver.hpp"
 
 class ParticleRenderer3D : public IRenderer {
 private:
-    std::shared_ptr<Camera> m_camera;
+    std::weak_ptr<IParticleSolver> m_solver;
+    std::weak_ptr<Camera> m_camera;
 
     GLuint m_VBO = 0;
     GLuint m_VAO = 0;
     GLuint m_EBO = 0;
+
+    static std::string s_shadersPath;
 
     // GLuint gridVBO = 0;
     // GLuint posesVBO = 0;
@@ -47,11 +51,10 @@ private:
         0, 2, 3
     };
 
-    const IParticleSolver& getSolver() const { return static_cast<const IParticleSolver&>(m_solver); }
     void initOpenGL();
      
 public:
-    ParticleRenderer3D(const IParticleSolver& solver, std::shared_ptr<Camera> camera);
+    ParticleRenderer3D(std::weak_ptr<IParticleSolver> solver, std::weak_ptr<Camera> camera);
     ~ParticleRenderer3D() override;
 
     ParticleRenderer3D(const ParticleRenderer3D&) = delete;

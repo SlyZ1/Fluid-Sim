@@ -4,38 +4,20 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#include "solver.hpp"
 #include "../shader_program.hpp"
 #include "../helpers/metrics.hpp"
 #include "../helpers/stats.hpp"
 #include "../cgs/cgs.hpp"
 
-#define FLIP_GPU_SPECIFIC_CONFIG_FIELDS(X) \
-    X(float, hPartRatio, 2) \
-    X(int, gridX, 50) \
-    X(int, gridY, 50) \
-    X(int, gridZ, 50)
-
-#define FLIP_GPU_CONFIG_FIELDS(X) \
-    PARTICLE_CONFIG_FIELDS(X) \
-    FLIP_GPU_SPECIFIC_CONFIG_FIELDS(X)
-
-struct FlipSolverGPUConfig : public IParticleSolverConfig {
-#define DECLARE_FIELDS(type, name, val) type name = val;
-    FLIP_GPU_SPECIFIC_CONFIG_FIELDS(DECLARE_FIELDS)
-#undef DECLARE_FIELDS
-
-    constexpr float h() const {
-        return 2 * partRadius * hPartRatio;
-    }
-
-    void drawImgui() const override;
-};
+#include "configs/flipSolverGPUConfig.hpp"
+#include "particleSolver.hpp"
 
 class FlipSolverGPU : public IParticleSolver {
 private:
     CGS m_cgs = {};
-    FlipSolverGPUConfig m_config = {};
+    FlipSolverGPUConfig m_config;
+
+    static std::string s_shadersPath;
 
     // FLIP Buffers
     GLuint m_partPosBuffer = 0;
@@ -132,7 +114,7 @@ private:
     glm::ivec3 cellToCoord(int cell, int nx, int ny);
     glm::vec3 cellToPos(int cell, int nx, int ny, int nz);
 
-    static void loadCompute(ShaderProgram& prog, const std::string& path);
+    static void loadCompute(ShaderProgram& prog, const std::string& relativePath);
  
     void deleteBuffers();
     void createBuffers();

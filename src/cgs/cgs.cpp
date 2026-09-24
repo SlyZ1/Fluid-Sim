@@ -81,6 +81,7 @@ void CGS::init(int n, GLuint ABuffer, GLuint bBuffer, GLuint xBuffer){
     deleteBuffers();
     initBuffers();
     
+    m_stopProg.destroy();
     m_stopProg.create();
     m_stopProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/cgs_stop_cond.glsl");
     m_stopProg.link();

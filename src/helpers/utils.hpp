@@ -11,6 +11,14 @@ public:
     static std::string toString(const glm::vec3& v, int precision = 3);
     static std::string toString(const glm::vec4& v, int precision = 3);
     static std::string formatFloat(float f, int precision = 2, bool scientific = false);
+    static std::string joinPath(const std::string& p1, const std::string& p2);
+    static glm::vec2 xy(const glm::vec3& v);
+    static glm::vec2 xy(const glm::vec4& v);
+    static glm::vec2 xz(const glm::vec3& v);
+    static glm::vec2 xz(const glm::vec4& v);
+    static glm::vec2 yz(const glm::vec3& v);
+    static glm::vec2 yz(const glm::vec4& v);
+    static glm::vec3 xyz(const glm::vec4& v);
     
     template <typename T>
     static std::vector<T> concat(std::initializer_list<std::reference_wrapper<const std::vector<T>>> vectors){

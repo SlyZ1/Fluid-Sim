@@ -13,7 +13,7 @@
 #include "helpers/metrics.hpp"
 #include "helpers/logger.hpp"
 
-#include "solvers/flipSolverGPU.hpp"
+#include "solvers/solverManager.hpp"
 #include "renderers/particleRenderer3D.hpp"
 
 #include "ui/ui.hpp"
@@ -26,13 +26,13 @@ int frameCount = 0;
 
 shared_ptr<App> app;
 shared_ptr<Camera> camera;
-shared_ptr<ISolver> solver;
+weak_ptr<ISolver> solver;
 shared_ptr<IRenderer> renderer;
 shared_ptr<UI> ui;
 
+unique_ptr<SolverManager> solverManager = {};
+
 vector<vec3> poses = { vec3(0,0,0), vec3(0.5f, 0.f, 0.f) };
-float particleRadius = 1.5f;
-int numParticle = (int)5e5;
 int iterations = 1;
 
 vec2 previousObstaclePos = vec2(0.f);
@@ -58,17 +58,18 @@ void init(){
     camera = make_shared<Camera>(app, 60.0f, 0.02f, 1.5f);
     camera->resetMousePos(app->mouseX(), app->mouseY());
     
-    FlipSolverGPUConfig flipConfigGPU = FlipSolverGPUConfig();
-    flipConfigGPU.partN = numParticle;
-    flipConfigGPU.partRadius = particleRadius;
-    flipConfigGPU.hPartRatio = 2;
-    flipConfigGPU.gridX = 600 / flipConfigGPU.h();
-    flipConfigGPU.gridY = 600 / flipConfigGPU.h();
-    flipConfigGPU.gridZ = 300 / flipConfigGPU.h();
-    flipConfigGPU.dt = 0.05f;
-
-    solver = make_shared<FlipSolverGPU>(flipConfigGPU);
-    renderer = make_shared<ParticleRenderer3D>(static_cast<const IParticleSolver&>(*solver), camera);
+    FlipSolverGPUConfig flipConfigGPU = FlipSolverGPUConfig(
+        (int)1e5,
+        1.5f,
+        0.05f,
+        2
+    );
+    flipConfigGPU.setDimensions(vec3(600, 600, 300));
+    
+    solverManager = make_unique<SolverManager>();
+    weak_ptr<FlipSolverGPU> typedSolver = solverManager->instantiate(flipConfigGPU);
+    renderer = make_shared<ParticleRenderer3D>(typedSolver, camera);
+    solver = typedSolver;
     
     UIContext ctx = { app, solver, renderer };
     ui = make_shared<UI>(ctx);
@@ -77,7 +78,7 @@ void init(){
     Logger::logSuccess("Program started.", __LOG_DATA__);
 }
 
-void inputs(){
+void inputs(shared_ptr<ISolver> lockedSolver){
     if (app->keyPressedOnce(GLFW_KEY_ESCAPE, frameCount)){
         freeView = !freeView;
         app->toggleCursor(!freeView);
@@ -105,12 +106,12 @@ void inputs(){
 
     // Hot reload shaders
     if (app->keyPressedOnce(GLFW_KEY_R, frameCount)){
-        renderer->reload();
+        if (renderer) renderer->reload();
         Logger::logInfo("Shaders reloaded.", __LOG_DATA__);
     }
     
     if (app->keyPressedOnce(GLFW_KEY_ENTER, frameCount)){
-        solver->reload();
+        if (lockedSolver) lockedSolver->reload();
         Logger::logInfo("Simulation restarted", __LOG_DATA__);
     }
 
@@ -121,7 +122,7 @@ void inputs(){
     if (app->keyPressedOnce(GLFW_KEY_RIGHT, frameCount)){
         if (paused){
             for (int i = 0; i < iterations; i++)
-                solver->update();
+                if (lockedSolver) lockedSolver->update();
         }
     }
     if (app->keyPressed(GLFW_MOUSE_BUTTON_LEFT)){
@@ -133,8 +134,8 @@ void inputs(){
 }
 
 void end(){
-    renderer.reset();
-    solver.reset();
+    if (renderer) renderer.reset();
+    solverManager.reset();
 
     ui.reset();
     camera.reset();
@@ -148,24 +149,16 @@ int main(){
     {
         app->startFrame(frameCount);
         ui->render();
-        
-        if (!paused){
-            if (enableObstacle){
-                vec2 obstaclePos = vec2(app->mouseX() - app->width() * 0.5f, app->height() * 0.5f - app->mouseY());
-                vec2 obstacleVel = (obstaclePos - previousObstaclePos) / 0.03f;
-                if (!previousEnableObstacle) obstacleVel = vec2(0.f);
-                previousObstaclePos = obstaclePos;
-                
-                //solver->updateObstacle(obstaclePos, obstacleVel, 10);
-            }
-            
-            for (int i = 0; i < iterations; i++)
-                solver->update();
-        }
-        previousEnableObstacle = enableObstacle;
 
-        renderer->render();
-        inputs();
+        auto lockedSolver = solver.lock();
+        
+        if (!paused) 
+            for (int i = 0; i < iterations; i++)
+                if (lockedSolver) lockedSolver->update();
+
+        if (renderer) renderer->render();
+
+        inputs(lockedSolver);
 
         frameCount++;
         app->endFrame();

@@ -6,28 +6,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
 
-#include "solver.hpp"
-
-#define FLIP_CPU_SPECIFIC_CONFIG_FIELDS(X) \
-    X(float, hPartRatio, 2) \
-    X(int, gridX, 50) \
-    X(int, gridY, 50)
-
-#define FLIP_CPU_CONFIG_FIELDS(X) \
-    PARTICLE_CONFIG_FIELDS(X) \
-    FLIP_CPU_SPECIFIC_CONFIG_FIELDS(X)
-
-struct FlipSolverCPUConfig : public IParticleSolverConfig {
-#define DECLARE_FIELDS(type, name, val) type name = val;
-    FLIP_CPU_SPECIFIC_CONFIG_FIELDS(DECLARE_FIELDS)
-#undef DECLARE_FIELDS
-
-    constexpr float h() const {
-        return 2 * partRadius * hPartRatio;
-    }
-
-    void drawImgui() const override;
-};
+#include "configs/flipSolverCPUConfig.hpp"
+#include "particleSolver.hpp"
 
 class FlipSolverCPU : public IParticleSolver {
 private:
@@ -40,8 +20,8 @@ private:
     glm::vec2 m_obstacleVel = glm::vec2(0.f);
     float m_obstacleRadius = 0.f;
     
-    std::vector<glm::vec2> m_partPos = {};
-    std::vector<glm::vec2> m_partVel = {};
+    std::vector<glm::vec4> m_partPos = {};
+    std::vector<glm::vec4> m_partVel = {};
     std::vector<float> m_oldVelX = {};
     std::vector<float> m_oldVelY = {};
     std::vector<float> m_velX = {};
@@ -79,8 +59,8 @@ public:
     GLuint getPosBuffer() const override;
     GLuint getVelBuffer() const override;
 
-    const std::vector<glm::vec2>& getPos() { return m_partPos; };
-    const std::vector<glm::vec2>& getVel() { return m_partVel; };
+    const std::vector<glm::vec4>& getPos() { return m_partPos; };
+    const std::vector<glm::vec4>& getVel() { return m_partVel; };
     std::vector<glm::vec4> getGrid(float width);
     std::vector<glm::vec4> getCells();
     std::vector<glm::vec4> getCellColors();

@@ -114,7 +114,7 @@ class IStatsProvider {
         m_stats->name = name;
     };
     virtual ~IStatsProvider() {};
-    std::shared_ptr<Stats> getStats() const { return m_stats; }
+    std::weak_ptr<Stats> getStats() const { return m_stats; }
 };
 
 #endif

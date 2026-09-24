@@ -1,12 +1,17 @@
 #include "particleRenderer3D.hpp"
 
+#include "../helpers/utils.hpp"
+
 using namespace std;
 using namespace glm;
 
-ParticleRenderer3D::ParticleRenderer3D(const IParticleSolver& solver, shared_ptr<Camera> camera) : IRenderer(solver), m_camera(camera) {
+string ParticleRenderer3D::s_shadersPath = "src/shaders/renderers/particle3D";
+
+ParticleRenderer3D::ParticleRenderer3D(weak_ptr<IParticleSolver> solver, weak_ptr<Camera> camera) 
+: IRenderer(), m_solver(solver), m_camera(camera) {
     m_particleShader.create();
-    m_particleShader.load(GL_VERTEX_SHADER, "src/shaders/particleVert.glsl");
-    m_particleShader.load(GL_FRAGMENT_SHADER, "src/shaders/particleFrag.glsl");
+    m_particleShader.load(GL_VERTEX_SHADER, Utils::joinPath(s_shadersPath, "/particleVert.glsl"));
+    m_particleShader.load(GL_FRAGMENT_SHADER, Utils::joinPath(s_shadersPath, "/particleFrag.glsl"));
     m_particleShader.link();
 
     // cumulativeParticleShader.create();
@@ -127,32 +132,37 @@ void ParticleRenderer3D::initOpenGL(){
 }
 
 void ParticleRenderer3D::render(){
+    auto solver = m_solver.lock();
+    if (!solver) return;
+
     m_particleShader.use();
 
-    const IParticleSolverConfig& config = getSolver().getConfig(); 
+    const IParticleSolverConfig& config = solver->getConfig(); 
 
-    glBindBuffer(GL_ARRAY_BUFFER, getSolver().getPosBuffer());
+    glBindBuffer(GL_ARRAY_BUFFER, solver->getPosBuffer());
 
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
     glVertexAttribDivisor(1, 1);
     glEnableVertexAttribArray(1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, getSolver().getVelBuffer());
+    glBindBuffer(GL_ARRAY_BUFFER, solver->getVelBuffer());
 
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
     glVertexAttribDivisor(3, 1);
     glEnableVertexAttribArray(3);
 
-    glUniform1f(ShaderProgram::getVarLoc("particleRadius"), config.partRadius);
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uView"), 1, GL_FALSE, &m_camera->viewMatrix()[0][0]);
-    glUniformMatrix4fv(ShaderProgram::getVarLoc("uProj"), 1, GL_FALSE, &m_camera->projectionMatrix()[0][0]);
+    glUniform1f(ShaderProgram::getVarLoc("particleRadius"), config.getPartRadius());
+    if (auto camera = m_camera.lock()){
+        glUniformMatrix4fv(ShaderProgram::getVarLoc("uView"), 1, GL_FALSE, &camera->viewMatrix()[0][0]);
+        glUniformMatrix4fv(ShaderProgram::getVarLoc("uProj"), 1, GL_FALSE, &camera->projectionMatrix()[0][0]);
+    }
     
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
-    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, config.partN);
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, config.getPartN());
 
     // cumulativeParticleShader.use();
 
