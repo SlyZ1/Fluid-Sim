@@ -1,2 +1,2 @@
 #!/bin/bash
-rm -rf build && cmake -B build -DBUILD_TEST='ON'
+rm -rf build && cmake -B build -DBUILD_TEST='OFF' 
