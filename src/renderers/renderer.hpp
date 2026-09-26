@@ -1,7 +1,7 @@
 #ifndef RENDERER_TEMPLATE_HPP
 #define RENDERER_TEMPLATE_HPP
 
-#include "../solvers/solver.hpp"
+#include "solvers/solver.hpp"
 #include <memory>
 
 class IRenderer {

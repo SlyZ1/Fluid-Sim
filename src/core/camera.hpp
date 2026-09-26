@@ -2,7 +2,7 @@
 #define CAMERA_HPP
 #include <glm/glm.hpp>
 
-#include "app.hpp"
+#include "core/app.hpp"
 
 struct CameraProperties {
     float fov;

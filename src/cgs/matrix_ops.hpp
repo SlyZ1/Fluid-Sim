@@ -2,7 +2,7 @@
 #define MAT_OPT_HPP
 
 #include <glad/glad.h>
-#include "../shader_program.hpp"
+#include "core/shader_program.hpp"
 #include <glm/glm.hpp>
 
 struct DispatchParams {

@@ -2,7 +2,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
-#include "../helpers/utils.hpp"
+#include "helpers/utils.hpp"
 
 using namespace glm; 
 using namespace std;

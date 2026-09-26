@@ -54,11 +54,12 @@ public:
     FlipSolverCPU(const FlipSolverCPU&) = delete;
     FlipSolverCPU& operator=(const FlipSolverCPU&) = delete;
 
-    void accept(const ISolverVisitor& visitor) override { visitor.visit(*this); }
+    void accept(ISolverVisitor& visitor) override { visitor.visit(*this); }
     void update() override;
     void reload() override;
     GLuint getPosBuffer() const override;
     GLuint getVelBuffer() const override;
+    bool is3D() const override { return false; }
 
     const std::vector<glm::vec4>& getPos() { return m_partPos; };
     const std::vector<glm::vec4>& getVel() { return m_partVel; };
@@ -66,6 +67,14 @@ public:
     std::vector<glm::vec4> getCells();
     std::vector<glm::vec4> getCellColors();
     void updateObstacle(glm::vec2 pos, glm::vec2 vel, float radius);
+
+    const FlipSolverCPUConfig& getConfig() const override {
+        return m_config; 
+    }
+
+    FlipSolverCPUConfig& getDraftConfig() override {
+        return static_cast<FlipSolverCPUConfig&>(ISolver::getDraftConfig());
+    }
 };
 
 #endif

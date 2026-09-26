@@ -4,10 +4,10 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#include "../shader_program.hpp"
-#include "../helpers/metrics.hpp"
-#include "../helpers/stats.hpp"
-#include "../cgs/cgs.hpp"
+#include "core/shader_program.hpp"
+#include "helpers/metrics.hpp"
+#include "helpers/stats.hpp"
+#include "cgs/cgs.hpp" 
 
 #include "configs/flipSolverGPUConfig.hpp"
 #include "particleSolver.hpp"
@@ -139,13 +139,23 @@ public:
     FlipSolverGPU(const FlipSolverGPU&) = delete;
     FlipSolverGPU& operator=(const FlipSolverGPU&) = delete;
 
-    void accept(const ISolverVisitor& visitor) override { visitor.visit(*this); }
+    void accept(ISolverVisitor& visitor) override { visitor.visit(*this); }
     void update() override;
     void reload() override;
     GLuint getPosBuffer() const override { return m_partPosBuffer; };
     GLuint getVelBuffer() const override { return m_partVelBuffer; };
 
     void updateObstacle(glm::vec2 pos, glm::vec2 vel, float radius);
+
+    const FlipSolverGPUConfig& getConfig() const override {
+        return m_config; 
+    }
+
+    FlipSolverGPUConfig& getDraftConfig() override {
+        return static_cast<FlipSolverGPUConfig&>(ISolver::getDraftConfig());
+    }
+
+    bool is3D() const override { return true; }
 };
 
 #endif

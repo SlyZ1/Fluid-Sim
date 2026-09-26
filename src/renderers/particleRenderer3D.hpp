@@ -2,14 +2,18 @@
 #define GPU_RENDERER_3D_HPP
 
 #include "renderer.hpp"
-#include "../shader_program.hpp"
-#include "../camera.hpp"
-#include "../solvers/particleSolver.hpp"
+#include "core/shader_program.hpp"
+#include "core/camera.hpp"
+#include "solvers/particleSolver.hpp"
+#include "gizmos/solverGizmos.hpp"
 
 class ParticleRenderer3D : public IRenderer {
 private:
     std::weak_ptr<IParticleSolver> m_solver;
     std::weak_ptr<Camera> m_camera;
+
+    SolverGizmos m_solverGizmos;
+    bool m_drawGizmos = true;
 
     GLuint m_VBO = 0;
     GLuint m_VAO = 0;
@@ -59,6 +63,8 @@ public:
 
     ParticleRenderer3D(const ParticleRenderer3D&) = delete;
     ParticleRenderer3D& operator=(const ParticleRenderer3D&) = delete;
+
+    void toggleGizmos(bool drawGizmos) { m_drawGizmos = drawGizmos; }
 
     void render() override;
     void reload() override;

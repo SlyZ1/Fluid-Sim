@@ -9,9 +9,9 @@ class ISolverVisitor {
 public:
     virtual ~ISolverVisitor() = default;
 
-    virtual void visit(IParticleSolver& solver) const = 0;
-    virtual void visit(FlipSolverCPU& solver) const = 0;
-    virtual void visit(FlipSolverGPU& solver) const = 0;
+    virtual void visit(IParticleSolver& solver) = 0;
+    virtual void visit(FlipSolverCPU& solver) = 0;
+    virtual void visit(FlipSolverGPU& solver) = 0;
 };
 
 #endif

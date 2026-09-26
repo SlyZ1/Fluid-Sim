@@ -1,6 +1,6 @@
 #include "particleRenderer3D.hpp"
 
-#include "../helpers/utils.hpp"
+#include "helpers/utils.hpp"
 
 using namespace std;
 using namespace glm;
@@ -8,7 +8,9 @@ using namespace glm;
 string ParticleRenderer3D::s_shadersPath = "src/shaders/renderers/particle";
 
 ParticleRenderer3D::ParticleRenderer3D(weak_ptr<IParticleSolver> solver, weak_ptr<Camera> camera) 
-: IRenderer(), m_solver(solver), m_camera(camera) {
+: IRenderer(), m_solver(solver), m_camera(camera), m_solverGizmos(camera) {
+    m_solverGizmos.setColor(vec4(0, 1, 0, 1));
+
     m_particleShader.create();
     m_particleShader.load(GL_VERTEX_SHADER, Utils::joinPath(s_shadersPath, "/particleVert.glsl"));
     m_particleShader.load(GL_FRAGMENT_SHADER, Utils::joinPath(s_shadersPath, "/particleFrag.glsl"));
@@ -78,8 +80,6 @@ void ParticleRenderer3D::initOpenGL(){
     glGenBuffers(1, &m_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glBufferData(GL_ARRAY_BUFFER, s_quadVerts.size() * sizeof(float), s_quadVerts.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
     
@@ -87,8 +87,6 @@ void ParticleRenderer3D::initOpenGL(){
     glGenBuffers(1, &m_EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, s_quadIndices.size() * sizeof(GLuint), s_quadIndices.data(), GL_STATIC_DRAW);
-
-    glEnable(GL_DEPTH_TEST);
 
     // glGenTextures(1, &depthTex);
     // glBindTexture(GL_TEXTURE_2D, depthTex);
@@ -138,6 +136,8 @@ void ParticleRenderer3D::render(){
     m_particleShader.use();
 
     const IParticleSolverConfig& config = solver->getConfig(); 
+
+    glBindVertexArray(m_VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, solver->getPosBuffer());
 
@@ -237,6 +237,15 @@ void ParticleRenderer3D::render(){
     // glBindFramebuffer(GL_FRAMEBUFFER, 0);
     // glClear(GL_COLOR_BUFFER_BIT);
     // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    if (m_drawGizmos){
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glEnable(GL_DEPTH_TEST);
+        if (auto lockedSolver = m_solver.lock()){
+            lockedSolver->accept(m_solverGizmos);
+        }
+        m_solverGizmos.render();
+    }
 }
 
 void ParticleRenderer3D::reload(){

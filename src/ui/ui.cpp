@@ -2,7 +2,7 @@
 #include "colorsUI.hpp"
 #include <format>
 
-#include "../solvers/flipSolverGPU.hpp"
+#include "solvers/flipSolverGPU.hpp"
 
 using namespace std;
 

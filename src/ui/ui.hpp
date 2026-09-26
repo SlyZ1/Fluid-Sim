@@ -3,12 +3,12 @@
 
 #include <type_traits>
 
-#include "../app.hpp"
-#include "../helpers/stats.hpp"
-#include "../solvers/solver.hpp" 
-#include "../renderers/renderer.hpp" 
+#include "core/app.hpp"
+#include "helpers/stats.hpp"
+#include "solvers/solver.hpp" 
+#include "renderers/renderer.hpp" 
 #include "solverUI.hpp" 
-#include "utilsUI.hpp"
+#include "utilsUI.hpp" 
 
 struct UIContext {
     std::shared_ptr<App> app;

@@ -5,7 +5,7 @@
 #include <glad/glad.h>
 
 #include "configs/solverConfig.hpp"
-#include "../helpers/stats.hpp"
+#include "helpers/stats.hpp"
 #include "solverVisitor.hpp"
 
 class ISolver : public IStatsProvider {
@@ -16,17 +16,18 @@ public:
     ISolver(std::unique_ptr<ISolverConfig> config, const std::string& statsName) 
     : IStatsProvider(statsName), m_baseConfig(std::move(config)) {};
     virtual ~ISolver() = default;
-    virtual void accept(const ISolverVisitor& visitor) = 0;
+    virtual void accept(ISolverVisitor& visitor) = 0;
     virtual void update() = 0;
     virtual void reload() = 0;
     virtual GLuint getPosBuffer() const = 0;
     virtual GLuint getVelBuffer() const = 0;
+    virtual bool is3D() const = 0;
 
     virtual const ISolverConfig& getConfig() const {
         return *m_baseConfig;
     }
 
-    ISolverConfig& getDraftConfig() {
+    virtual ISolverConfig& getDraftConfig() {
         if (!m_draftConfig) m_draftConfig = m_baseConfig->clone();
         return *m_draftConfig;
     }

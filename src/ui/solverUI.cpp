@@ -1,8 +1,8 @@
 #include "solverUI.hpp"
 
 #include "utilsUI.hpp"
-#include "../solvers/flipSolverCPU.hpp"
-#include "../solvers/flipSolverGPU.hpp"
+#include "solvers/flipSolverCPU.hpp"
+#include "solvers/flipSolverGPU.hpp"
 
 using namespace glm;
 
@@ -13,7 +13,7 @@ using namespace glm;
     config.set##uppercasedName(name);
 
 
-void SolverUI::visit(IParticleSolver& solver) const {
+void SolverUI::visit(IParticleSolver& solver) {
     IParticleSolverConfig& config = static_cast<IParticleSolverConfig&>(solver.getDraftConfig());
 
     UtilsUI::BeginTwoColumnLayout();
@@ -25,7 +25,7 @@ void SolverUI::visit(IParticleSolver& solver) const {
     UtilsUI::EndTwoColumnLayout();
 }
 
-void SolverUI::visit(FlipSolverCPU& solver) const {
+void SolverUI::visit(FlipSolverCPU& solver) {
     visit(static_cast<IParticleSolver&>(solver));
     FlipSolverCPUConfig& config = static_cast<FlipSolverCPUConfig&>(solver.getDraftConfig());
 
@@ -38,7 +38,7 @@ void SolverUI::visit(FlipSolverCPU& solver) const {
     UtilsUI::EndTwoColumnLayout();
 }
 
-void SolverUI::visit(FlipSolverGPU& solver) const {
+void SolverUI::visit(FlipSolverGPU& solver) {
     visit(static_cast<IParticleSolver&>(solver));
     FlipSolverGPUConfig& config = static_cast<FlipSolverGPUConfig&>(solver.getDraftConfig());
 

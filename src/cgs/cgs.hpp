@@ -7,7 +7,7 @@
 #include <memory>
 
 #include "matrix_ops.hpp"
-#include "../shader_program.hpp"
+#include "core/shader_program.hpp"
 
 class CGS {
 private:

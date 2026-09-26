@@ -5,9 +5,11 @@
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <glm/gtc/matrix_transform.hpp>
-#include "app.hpp"
-#include "camera.hpp"
-#include "shader_program.hpp"
+
+#include "core/app.hpp"
+#include "core/shader_program.hpp"
+
+#include "core/camera.hpp"
 
 #include "helpers/stats.hpp"
 #include "helpers/metrics.hpp"
@@ -17,7 +19,6 @@
 #include "renderers/particleRenderer3D.hpp"
 
 #include "ui/ui.hpp"
-
 
 using namespace std;
 using namespace glm;
@@ -155,7 +156,9 @@ int main(){
             for (int i = 0; i < iterations; i++)
                 if (lockedSolver) lockedSolver->update();
 
-        if (renderer) renderer->render();
+        if (renderer) {
+            renderer->render();
+        }
 
         inputs(lockedSolver);
 

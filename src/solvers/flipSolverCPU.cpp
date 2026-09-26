@@ -3,7 +3,7 @@
 #include <omp.h>
 #include <iostream>
 
-#include "../helpers/utils.hpp"
+#include "helpers/utils.hpp"
 
 using namespace std;
 using namespace glm;
