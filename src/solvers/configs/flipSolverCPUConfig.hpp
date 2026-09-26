@@ -20,7 +20,7 @@ public:
     std::unique_ptr<ISolverConfig> clone() const override; 
 
     float getH() const { return 2 * m_partRadius * m_partPerH; }
-    float getDensity() const { return m_partPerH * m_partPerH * m_partPerH; }
+    float getDensity() const { return m_partPerH * m_partPerH; }
     
     float getPartPerH() const { return m_partPerH; }
     void setPartPerH(float partPerH) { m_partPerH = std::max(partPerH, 1.0f); }

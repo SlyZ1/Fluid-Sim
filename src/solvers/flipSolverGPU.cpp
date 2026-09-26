@@ -37,7 +37,7 @@ void FlipSolverGPU::createBuffers(){
         int rest = (i - x) / a;
         int y = rest % a;
         int z = (rest - y) / a;
-        partPos[i] = (vec4(x, y, z, 1) + 1.f * vec4(1, 0, 1, 0) * 0.5f * (float)((int)y % 2) - vec4(a * 0.5f)) * 2.f * m_config.getPartRadius() * 1.f;
+        partPos[i] = (vec4(x, y, z, 1) + 1.f * vec4(1, 0, 1, 0) * 0.5f * (float)((int)y % 2) - vec4(a * 0.5f)) * 2.f * m_config.getPartRadius();
         // partPos[i].x -= h * 30;
         // partPos[i].y -= h * 30;
     }
@@ -515,6 +515,7 @@ void FlipSolverGPU::solveIncompressibility(int iterations, bool useCGS){
         glUniform1i(ShaderProgram::getVarLoc("gridY"), m_config.getGridY());
         glUniform1i(ShaderProgram::getVarLoc("gridZ"), m_config.getGridZ());
         glUniform1f(ShaderProgram::getVarLoc("h"), m_config.getH());
+        glUniform1f(ShaderProgram::getVarLoc("density"), m_config.getDensity());
         m_computeMinusDivShader.dispatch((m_config.getGridX() + 7) / 8, (m_config.getGridY() + 7) / 8, (m_config.getGridZ() + 7) / 8);
         
         ShaderProgram::SSBOBarrier();

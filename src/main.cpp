@@ -62,7 +62,7 @@ void init(){
     flipConfigGPU.setPartN((int)1e5);
     flipConfigGPU.setDt(0.05f);
     flipConfigGPU.setPartPerH(2.0f);
-    flipConfigGPU.setDomainSize(vec3(1000, 1000, 500));
+    flipConfigGPU.setDomainSize(vec3(600, 600, 300));
     flipConfigGPU.setPartRadius(1.5f);
     
     solverManager = make_unique<SolverManager>();

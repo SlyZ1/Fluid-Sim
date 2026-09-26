@@ -110,7 +110,7 @@ GLuint CGS::solve(int maxIter, float tol){
     [this](GLuint Abuf, GLuint dBuf, GLuint AdBuf, int n, bool dispatch) {
         m_matOps->matVec(Abuf, dBuf, AdBuf, n, dispatch);
     };
-    return solve(maxIter, tol, matVec, m_dispatchParams[0]);
+    return solve(maxIter, tol, matVec, m_dispatchParams[0], false);
 }
 
 GLuint CGS::solve(int maxIter, float tol, function<void(GLuint, GLuint, GLuint, int, bool)> matVec, DispatchParams matVecParams, bool reuse){
@@ -200,7 +200,8 @@ GLuint CGS::solve(int maxIter, float tol, function<void(GLuint, GLuint, GLuint, 
             m_n, 
             RTR_NEW_SCALAR_INDEX
         );
-        //ShaderProgram::indirectDispatch(indirectBuffer, 1 * sizeof(DispatchParams));
+        // m_matOps->dot(m_rBuffer, m_rBuffer, m_scalarBuffer, m_n, RTR_NEW_SCALAR_INDEX);
+        // ShaderProgram::indirectDispatch(indirectBuffer, 1 * sizeof(DispatchParams));
         xAlphaScalarOperations = vector<int>(16,0);
         xAlphaScalarOperations[RTR_NEW_SCALAR_INDEX] = 1;
         xAlphaScalarOperations[DTAD_SCALAR_INDEX] = -1;

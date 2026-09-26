@@ -1,6 +1,7 @@
 #include "matrix_ops.hpp"
 
 using namespace std;
+using namespace glm;
 
 MatOps::MatOps(){
     m_mulProg.create();
@@ -19,13 +20,13 @@ MatOps::MatOps(){
     m_saxpyProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/saxpy.glsl");
     m_saxpyProg.link();
     
-    m_dot1Prog.create();
-    m_dot1Prog.load(GL_COMPUTE_SHADER, "src/shaders/mat/dot1.glsl");
-    m_dot1Prog.link();
+    m_dotPartialMultProg.create();
+    m_dotPartialMultProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/dotPartialMult.glsl");
+    m_dotPartialMultProg.link();
     
-    m_dot2Prog.create();
-    m_dot2Prog.load(GL_COMPUTE_SHADER, "src/shaders/mat/dot2.glsl");
-    m_dot2Prog.link();
+    m_dotFinalSumProg.create();
+    m_dotFinalSumProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/dotFinalSum.glsl");
+    m_dotFinalSumProg.link();
 
     m_copyProg.create();
     m_copyProg.load(GL_COMPUTE_SHADER, "src/shaders/mat/copy.glsl");
@@ -66,77 +67,54 @@ void MatOps::multiply(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N
     
     if (!dispatch) return;
     glDispatchCompute((N + 15) / 16, (N + 15) / 16, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    ShaderProgram::SSBOBarrier();
 }
 
 void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, int index){
-    ensurePartialCapacity(N);
-    m_dot1Prog.use();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferB);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_partialDotBuffer);
-    glUniform1i(ShaderProgram::getVarLoc("N"), N);
-
-    m_dot1Prog.dispatch((N + 127) / 128);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-    m_dot2Prog.use();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_partialDotBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferResult);
-    glUniform1i(ShaderProgram::getVarLoc("numPartials"), (N + 127) / 128);
-    glUniform3i(ShaderProgram::getVarLoc("indicies"), index, -1, -1);
-    m_dot2Prog.dispatch(1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-    
-    // if (!dispatch) return;
-    // dot1Prog.dispatch((N + 127) / 128);
-    // glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    dot(bufferA, bufferB, bufferResult, N, ivec3(index, -1, -1));
 }
 
-void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, glm::ivec3 indicies){
+void MatOps::dot(GLuint bufferA, GLuint bufferB, GLuint bufferResult, int N, ivec3 indicies){
     ensurePartialCapacity(N);
-    m_dot1Prog.use();
+
+    m_dotPartialMultProg.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferB);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_partialDotBuffer);
     glUniform1i(ShaderProgram::getVarLoc("N"), N);
+    m_dotPartialMultProg.dispatch((N + 127) / 128);
+    
+    ShaderProgram::SSBOBarrier();
 
-    m_dot1Prog.dispatch((N + 127) / 128);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-    m_dot2Prog.use();
+    m_dotFinalSumProg.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_partialDotBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferResult);
     glUniform1i(ShaderProgram::getVarLoc("numPartials"), (N + 127) / 128);
     glUniform3i(ShaderProgram::getVarLoc("indicies"), indicies.x, indicies.y, indicies.z);
-    m_dot2Prog.dispatch(1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    m_dotFinalSumProg.dispatch();
 
-    
-    // if (!dispatch) return;
-    // dot1Prog.dispatch((N + 127) / 128);
-    // glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    ShaderProgram::SSBOBarrier();
 }
 
 
 void MatOps::dotIndirect(GLuint bufferA, GLuint bufferB, GLuint bufferResult, GLuint indirectBuffer, int offset1, int offset2, int N, int index){
     ensurePartialCapacity(N);
-    m_dot1Prog.use();
+
+    m_dotPartialMultProg.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferA);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferB);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_partialDotBuffer);
     glUniform1i(ShaderProgram::getVarLoc("N"), N);
-
+    
     ShaderProgram::indirectDispatch(indirectBuffer, offset1);
     ShaderProgram::indirectBarrier();
 
-    m_dot2Prog.use();
+    m_dotFinalSumProg.use();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_partialDotBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferResult);
     glUniform1i(ShaderProgram::getVarLoc("numPartials"), (N + 127) / 128);
     glUniform3i(ShaderProgram::getVarLoc("indicies"), index, -1, -1);
-
+    
     ShaderProgram::indirectDispatch(indirectBuffer, offset2);
 }
 
@@ -154,7 +132,7 @@ void MatOps::saxpy(GLuint bufferX, GLuint bufferY, GLuint bufferZ,
     
     if (!dispatch) return;
     glDispatchCompute((N + 127) / 128, 1, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    ShaderProgram::SSBOBarrier();
 }
 
 void MatOps::saxpy(GLuint bufferX, GLuint bufferY, GLuint bufferZ, float alpha, int N, bool dispatch){
@@ -177,7 +155,7 @@ void MatOps::saxpy(GLuint bufferX, GLuint bufferY, GLuint bufferZ, float alpha, 
     
     if (!dispatch) return;
     glDispatchCompute((N + 127) / 128, 1, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    ShaderProgram::SSBOBarrier();
 }
 
 void MatOps::copy(GLuint bufferX, GLuint bufferY, int N, bool dispatch){
@@ -189,7 +167,7 @@ void MatOps::copy(GLuint bufferX, GLuint bufferY, int N, bool dispatch){
 
     if (!dispatch) return;
     glDispatchCompute((N + 255) / 256, 1, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    ShaderProgram::SSBOBarrier();
 }
 
 void MatOps::matVec(GLuint bufferA, GLuint bufferV, GLuint bufferResult, int N, bool dispatch){
@@ -202,7 +180,7 @@ void MatOps::matVec(GLuint bufferA, GLuint bufferV, GLuint bufferResult, int N, 
     
     if (!dispatch) return;
     glDispatchCompute((N + 63) / 64, 1, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    ShaderProgram::SSBOBarrier();
 }
 
 void MatOps::transpose(GLuint bufferA, GLuint bufferResult, int N, bool dispatch){
@@ -214,5 +192,5 @@ void MatOps::transpose(GLuint bufferA, GLuint bufferResult, int N, bool dispatch
     
     if (!dispatch) return;
     glDispatchCompute((N + 15) / 16, (N + 15) / 16, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    ShaderProgram::SSBOBarrier();
 }
